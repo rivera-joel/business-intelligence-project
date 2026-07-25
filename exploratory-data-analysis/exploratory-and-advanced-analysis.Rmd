@@ -1,0 +1,2593 @@
+---
+title: "EXPLORATORY AND ADVANCED ANALYSIS
+output: html_notebook
+---
+
+# =================================
+
+# EXPLORATORY AND ADVANCED ANALYSIS
+
+# =================================
+
+## LIBRARIES
+
+```{r}
+library(dplyr)
+library(base)
+library(readxl)
+library(psych)
+```
+
+## DATA LOADING
+
+```{r}
+
+setwd("~/Downloads")
+Affiliated_Outlets <- read.csv("Affiliated_Outlets.csv", sep = ";")
+Postal_Codes <- read.csv("codigos_postales_municipios.csv")
+DeliveryDay <- read.csv("DeliveryDay.csv", sep = ";")
+OoSDay<- read.csv("OoSDay.csv",  sep = ";")
+Product <- read.csv("Product.csv",  sep = ";")
+RouteDay <- read.csv("RouteDay.csv", sep = ";")
+SalesDay<- read.csv("SalesDay (1).csv",  sep = ";")
+
+```
+
+## DATASETS
+
+### - *Affiliated Outlets*
+
+```{r}
+#Exploration
+str(Affiliated_Outlets)
+head(Affiliated_Outlets)
+dim(Affiliated_Outlets)
+names(Affiliated_Outlets)
+```
+
+```{r}
+#Null value check
+is.na(Affiliated_Outlets)
+colSums(is.na(Affiliated_Outlets))
+```
+
+```{r}
+# Suma de valores descritos como "N.D."
+ND_total<-sum(Affiliated_Outlets$Tam_m2 == "N.D.", na.rm = TRUE)
+
+# Total de registros
+Registros_total <- nrow(Affiliated_Outlets)
+
+# Cantidad de registros "N.D." sobre el total de registros
+ND_porcentaje <- (ND_total / Registros_total) * 100
+ND_porcentaje
+```
+
+```{r}
+# Valores vacíos
+colSums(Affiliated_Outlets == "", na.rm = TRUE)
+```
+
+```{r}
+# Valores únicos
+sapply(Affiliated_Outlets, function(x) length(unique(x)))
+```
+
+```{r}
+# Estadísticas descriptivas
+summary(Affiliated_Outlets)
+describe(Affiliated_Outlets)
+# Rango (mínimo y máximo)
+range(Affiliated_Outlets$Engage, na.rm = TRUE)
+range(Affiliated_Outlets$Management_Cluster, na.rm = TRUE)
+# Moda
+names(sort(table(Affiliated_Outlets$Engage), decreasing = TRUE))[1]
+names(sort(table(Affiliated_Outlets$Management_Cluster), decreasing = TRUE))[1]
+names(sort(table(Affiliated_Outlets$Tam_m2), decreasing = TRUE))[1]
+```
+
+```{r}
+# Variables categóricas más relevantes
+table(Affiliated_Outlets$Engage)
+prop.table(table(Affiliated_Outlets$Engage))
+```
+
+```{r}
+table(Affiliated_Outlets$Management_Cluster)
+prop.table(table(Affiliated_Outlets$Management_Cluster))
+```
+
+```{r}
+table(Affiliated_Outlets$Location)
+prop.table(table(Affiliated_Outlets$Location))
+```
+
+```{r}
+table(Affiliated_Outlets$Tam_m2)
+prop.table(table(Affiliated_Outlets$Tam_m2))
+```
+
+### - *DeliveryDay*
+
+```{r}
+# Exploración básica
+str(DeliveryDay)
+head(DeliveryDay)
+dim(DeliveryDay)
+names(DeliveryDay)
+```
+
+```{r}
+# Valores nulos
+is.na(DeliveryDay)
+colSums(is.na(DeliveryDay))
+```
+
+```{r}
+# Valores vacíos
+colSums(DeliveryDay == "")
+```
+
+```{r}
+# Valores únicos
+sapply(DeliveryDay, function(x) length(unique(x)))
+```
+
+```{r}
+# Estadísticas descriptivas
+summary(DeliveryDay)
+summary(DeliveryDay$Delivery_Uds)
+describe(DeliveryDay$Delivery_Uds)
+
+# Rango
+range(DeliveryDay$Delivery_Uds, na.rm = TRUE)
+
+# Moda
+names(sort(table(DeliveryDay$Delivery_Uds), decreasing = TRUE))[1]
+
+```
+
+### - *OoSDay*
+
+```{r}
+# Exploración básica
+str(OoSDay)
+head(OoSDay)
+dim(OoSDay)
+names(OoSDay)
+```
+
+```{r}
+# Valores nulos
+is.na(OoSDay)
+colSums(is.na(OoSDay))
+```
+
+```{r}
+# Valores vacíos
+colSums(OoSDay == "")
+```
+
+```{r}
+# Valores únicos
+sapply(OoSDay, function(x) length(unique(x)))
+```
+
+```{r}
+# Estadísticas descriptivas
+summary(OoSDay)
+```
+
+### - *Postal_Codes*
+
+```{r}
+# Exploración básica
+str(Postal_Codes)
+head(Postal_Codes)
+dim(Postal_Codes)
+names(Postal_Codes)
+```
+
+```{r}
+# Tipos de variables
+sapply(Postal_Codes, class)
+```
+
+```{r}
+# Valores nulos
+is.na(Postal_Codes)
+colSums(is.na(Postal_Codes))
+```
+
+```{r}
+# Valores vacíos
+colSums(Postal_Codes == "")
+```
+
+```{r}
+# Valores únicos
+sapply(Postal_Codes, function(x) length(unique(x)))
+```
+
+```{r}
+# Estadísticas descriptivas
+summary(Postal_Codes)
+```
+
+```{r}
+# Inspección de valores
+head(Postal_Codes[,1], 20)
+```
+
+### - *Product*
+
+```{r}
+# Exploración básica
+str(Product)
+head(Product)
+dim(Product)
+names(Product)
+```
+
+```{r}
+# Valores nulos
+is.na(Product)
+colSums(is.na(Product))
+```
+
+```{r}
+# Valores vacíos
+colSums(Product == "")
+```
+
+```{r}
+# Valores únicos
+sapply(Product, function(x) length(unique(x)))
+```
+
+```{r}
+# Estadísticas descriptivas
+summary(Product)
+describe(Product$SIZE)
+
+# Rango
+range(Product$SIZE, na.rm = TRUE)
+
+# Moda
+names(sort(table(Product$SIZE), decreasing = TRUE))[1]
+```
+
+```{r}
+# Variables categóricas más relevantes
+table(Product$Format)
+prop.table(table(Product$Format))
+```
+
+### - *RouteDay*
+
+```{r}
+# Exploración básica
+str(RouteDay)
+head(RouteDay)
+dim(RouteDay)
+names(RouteDay)
+```
+
+```{r}
+# Valores nulos
+is.na(RouteDay)
+colSums(is.na(RouteDay))
+```
+
+```{r}
+# Valores vacíos
+colSums(RouteDay == "")
+```
+
+```{r}
+# Valores únicos
+sapply(RouteDay, function(x) length(unique(x)))
+```
+
+```{r}
+# Valores únicos
+sapply(RouteDay, function(x) length(unique(x)))
+```
+
+```{r}
+# Estadísticas descriptivas
+summary(RouteDay)
+```
+
+### - *SalesDay*
+
+```{r}
+# Exploración básica
+str(SalesDay)
+head(SalesDay)
+dim(SalesDay)
+names(SalesDay)
+```
+
+```{r}
+# Valores nulos
+is.na(SalesDay)
+colSums(is.na(SalesDay))
+```
+
+```{r}
+# Valores vacíos
+colSums(SalesDay == "")
+```
+
+```{r}
+# Valores únicos
+sapply(SalesDay, function(x) length(unique(x)))
+```
+
+```{r}
+# Estadísticas descriptivas
+summary(SalesDay)
+summary(SalesDay$Sales_Uds)
+describe(SalesDay$Sales_Uds)
+
+# Rango
+range(SalesDay$Sales_Uds, na.rm = TRUE)
+
+# Moda
+names(sort(table(SalesDay$Sales_Uds), decreasing = TRUE))[1]
+```
+
+# CORRELATION OF VARIABLES
+
+```{r}
+# Carga de librerias
+library(dplyr)
+library(ggplot2)
+
+# Agregar ventas por día (Excluyendo valores negativos)
+sales_day <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Sales_DAY) %>%
+  summarise(
+    Sales = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Agregar entregas por día (Excluyendo valores negativos)
+delivery_day <- DeliveryDay %>%
+  filter(Delivery_Uds >= 0) %>%
+  group_by(Delivery_DAY) %>%
+  summarise(
+    Delivery = sum(Delivery_Uds, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  rename(Sales_DAY = Delivery_DAY)
+
+# Unir datasets
+data_corr <- left_join(sales_day, delivery_day, by = "Sales_DAY")
+
+# Correlación
+correlacion <- cor(
+  data_corr$Sales,
+  data_corr$Delivery,
+  use = "complete.obs",
+  method = "pearson"
+)
+
+correlacion
+```
+
+```{r}
+# Visualización de la relación
+ggplot(data_corr, aes(x = Delivery, y = Sales)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(
+    title = "Relación entre unidades entregadas y vendidas",
+    x = "Unidades entregadas",
+    y = "Unidades vendidas"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# 1. Ventas por día (sin negativos)
+sales_day <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Sales_DAY) %>%
+  summarise(
+    Sales = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 2. OoS por día (conteo de incidencias)
+oos_day <- OoSDay %>%
+  group_by(OoS_DAY) %>%
+  summarise(
+    OoS = n(),
+    .groups = "drop"
+  ) %>%
+  rename(Sales_DAY = OoS_DAY)
+
+# 3. Unir datasets
+data_oos <- left_join(sales_day, oos_day, by = "Sales_DAY")
+
+# Reemplazar NA por 0 (días sin OoS)
+data_oos$OoS[is.na(data_oos$OoS)] <- 0
+
+# 4. Calcular correlación
+correlacion_oos <- cor(
+  data_oos$Sales,
+  data_oos$OoS,
+  use = "complete.obs",
+  method = "pearson"
+)
+
+correlacion_oos
+
+# 5. Visualización
+ggplot(data_oos, aes(x = OoS, y = Sales)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(
+    title = "Relación entre roturas de stock y ventas",
+    x = "Número de incidencias OoS",
+    y = "Unidades vendidas"
+  ) +
+  theme_minimal()
+```
+
+# VISUALIZATION
+
+```{r}
+library(dplyr)
+library(ggplot2)
+install.packages("sf")
+library(sf)
+install.packages("giscoR")
+library(giscoR)
+install.packages("stringi")
+library(stringi)
+
+# Cantidad de ventas negativas (sales)
+
+sum(SalesDay$Sales_Uds < 0, na.rm = TRUE)
+
+# 1. Ventas por establecimiento
+
+
+sales_affiliated <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Total_Sales_Uds = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 2. Unir ventas con Affiliated_Outlets para obtener código postal
+sales_postal <- sales_affiliated %>%
+  left_join(
+    Affiliated_Outlets %>% select(Affiliated_Code, POSTALCODE),
+    by = "Affiliated_Code"
+  )
+
+# 3. Extraer provincia desde el código postal
+sales_postal <- sales_postal %>%
+  mutate(
+    POSTALCODE = sprintf("%05d", as.numeric(POSTALCODE)),
+    Provincia_Code = substr(POSTALCODE, 1, 2)
+  )
+
+# 4. Tabla de provincias
+prov_map <- data.frame(
+  Provincia_Code = c("01","02","03","04","05","06","07","08","09","10",
+                     "11","12","13","14","15","16","17","18","19","20",
+                     "21","22","23","24","25","26","27","28","29","30",
+                     "31","32","33","34","35","36","37","38","39","40",
+                     "41","42","43","44","45","46","47","48","49","50",
+                     "51","52"),
+  provincia = c("Álava","Albacete","Alicante","Almería","Ávila","Badajoz",
+                "Balears","Barcelona","Burgos","Cáceres","Cádiz","Castellón",
+                "Ciudad Real","Córdoba","A Coruña","Cuenca","Girona","Granada",
+                "Guadalajara","Gipuzkoa","Huelva","Huesca","Jaén","León",
+                "Lleida","La Rioja","Lugo","Madrid","Málaga","Murcia",
+                "Navarra","Ourense","Asturias","Palencia","Las Palmas",
+                "Pontevedra","Salamanca","Santa Cruz de Tenerife","Cantabria",
+                "Segovia","Sevilla","Soria","Tarragona","Teruel","Toledo",
+                "Valencia","Valladolid","Bizkaia","Zamora","Zaragoza",
+                "Ceuta","Melilla")
+)
+
+# 5. Ventas por provincia
+sales_prov <- sales_postal %>%
+  left_join(prov_map, by = "Provincia_Code") %>%
+  group_by(provincia) %>%
+  summarise(
+    Total_Sales_Uds = sum(Total_Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 6. Descargar mapa de provincias de España
+spain_prov <- gisco_get_nuts(
+  country = "ES",
+  nuts_level = 3,
+  resolution = "20"
+)
+
+# 7. Normalizar nombres para unir correctamente
+sales_prov <- sales_prov %>%
+  mutate(prov_clean = stri_trans_general(toupper(provincia), "Latin-ASCII"))
+
+spain_prov <- spain_prov %>%
+  mutate(prov_clean = stri_trans_general(toupper(NAME_LATN), "Latin-ASCII"))
+
+# 8. Unir mapa con ventas
+map_sales <- spain_prov %>%
+  left_join(sales_prov, by = "prov_clean")
+
+install.packages("scales")
+library(scales)
+
+# 9. Mapa de calor
+ggplot(map_sales) +
+  geom_sf(aes(fill = Total_Sales_Uds), color = "white", size = 0.2) +
+  scale_fill_gradient(
+    low = "lightyellow",
+    high = "red",
+    na.value = "grey90",
+    labels = label_number(
+      big.mark = ".",
+      decimal.mark = ","
+    )
+  ) +
+  labs(
+    title = "Mapa de calor de unidades vendidas por provincia",
+    fill = "Unidades vendidas"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Tabla de frecuencias ordenada
+loc <- table(Affiliated_Outlets$Location)
+loc <- sort(loc, decreasing = TRUE)
+
+# Ajustar márgenes (MUY IMPORTANTE)
+par(mar = c(9,4,4,2))  # abajo, izquierda, arriba, derecha
+
+# Crear gráfico
+bp <- barplot(loc,
+              main = "Distribución de Location",
+              col = "steelblue",
+              border = NA,
+              las = 2,
+              cex.names = 0.9,
+              space = 0.6,
+              ylim = c(0, max(loc)*1.2))  # deja espacio arriba
+
+# Añadir porcentajes bien posicionados
+text(x = bp,
+     y = loc,
+     labels = paste0(round(prop.table(loc)*100,1), "%"),
+     pos = 3,
+     cex = 0.9)
+```
+
+```{r}
+# Crear tabla de frecuencias
+tam <- table(Affiliated_Outlets$Tam_m2)
+
+# Ordenar de mayor a menor
+tam <- sort(tam, decreasing = TRUE)
+
+# Ajustar márgenes
+par(mar = c(9,4,4,2))
+
+# Crear gráfico
+barplot(tam,
+        main = "Distribución de Tam_m2",
+        col = "steelblue",
+        border = NA,
+        las = 2,
+        cex.names = 0.9,
+        space = 0.6,
+        ylim = c(0, max(tam)*1.2),
+        xlab = "",
+        ylab = "")
+
+```
+
+```{r}
+# Convertir fecha
+DeliveryDay$Delivery_DAY <- as.Date(DeliveryDay$Delivery_DAY)
+
+# Crear número de mes
+DeliveryDay$Mes_num <- as.numeric(format(DeliveryDay$Delivery_DAY, "%m"))
+
+# Contar número de entregas por mes
+entregas_mes <- table(DeliveryDay$Mes_num)
+
+# Asegurar que aparezcan todos los meses, aunque tengan 0
+entregas_mes_completo <- rep(0, 12)
+entregas_mes_completo[as.numeric(names(entregas_mes))] <- as.numeric(entregas_mes)
+
+# Nombres de meses
+meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
+           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+
+# Gráfico de línea temporal
+par(mar = c(8,4,4,2))
+
+plot(entregas_mes_completo,
+     type = "o",
+     col = "steelblue",
+     lwd = 2,
+     pch = 16,
+     xaxt = "n",
+     xlab = "",
+     ylab = "",
+     main = "Distribución mensual de entregas",
+     ylim = c(0, max(entregas_mes_completo) * 1.2))
+
+axis(1, at = 1:12, labels = meses, las = 2)
+```
+
+```{r}
+# Crear tabla de frecuencias
+mc <- table(Affiliated_Outlets$Management_Cluster)
+
+# Ordenar de mayor a menor
+mc <- sort(mc, decreasing = TRUE)
+
+# Asegurar que las etiquetas sean solo números
+names(mc) <- as.character(names(mc))
+
+# Ajustar márgenes
+par(mar = c(7,4,4,2))
+
+# Crear gráfico
+bp <- barplot(mc,
+              main = "Distribución de Management Cluster",
+              col = "steelblue",
+              border = NA,
+              las = 2,
+              cex.names = 0.9,
+              space = 0.6,
+              ylim = c(0, max(mc)*1.2),
+              xlab = "Clusters",
+              ylab = "")
+
+# Añadir porcentajes
+text(x = bp,
+     y = mc,
+     labels = paste0(round(prop.table(mc)*100,1), "%"),
+     pos = 3,
+     cex = 0.9)
+```
+
+```{r}
+# Crear tabla de frecuencias
+eng <- table(Affiliated_Outlets$Engage)
+
+# Ordenar de mayor a menor
+eng <- sort(eng, decreasing = TRUE)
+
+# Asegurar etiquetas como números
+names(eng) <- as.character(names(eng))
+
+# Ajustar márgenes
+par(mar = c(7,4,4,2))
+
+# Crear gráfico
+bp <- barplot(eng,
+              main = "Distribución de Engage",
+              col = "steelblue",
+              border = NA,
+              las = 2,
+              cex.names = 0.9,
+              space = 0.6,
+              ylim = c(0, max(eng)*1.2),
+              xlab = "Engage",
+              ylab = "")   # quitamos "Frecuencia"
+
+# Añadir porcentajes encima de cada barra
+text(x = bp,
+     y = eng,
+     labels = paste0(round(prop.table(eng)*100,1), "%"),
+     pos = 3,
+     cex = 0.9)
+```
+
+```{r}
+# Crear tabla de frecuencias
+tam <- table(Affiliated_Outlets$Tam_m2)
+
+# Ordenar de mayor a menor
+tam <- sort(tam, decreasing = TRUE)
+
+# Ajustar márgenes
+par(mar = c(9,4,4,2))
+
+# Crear gráfico
+bp <- barplot(tam,
+              main = "Distribución de Tam_m2",
+              col = "steelblue",
+              border = NA,
+              las = 2,
+              cex.names = 0.9,
+              space = 0.6,
+              ylim = c(0, max(tam)*1.2),
+              xlab = "",
+              ylab = "")
+
+# Añadir porcentajes
+text(x = bp,
+     y = tam,
+     labels = paste0(round(prop.table(tam)*100,1), "%"),
+     pos = 3,
+     cex = 0.9)
+```
+
+```{r}
+prod <- table(SalesDay$Product_Code)
+porc <- prop.table(prod)
+
+grandes <- prod[porc >= 0.03]
+otros <- sum(prod[porc < 0.03])
+
+final <- c(grandes, OTROS = otros)
+final <- sort(final, decreasing = TRUE)
+
+labels <- paste0(names(final), " (", round(prop.table(final) * 100, 2), "%)")
+colores <- colorRampPalette(c("#d6eaff", "#5aa9ff", "#003f7f"))(length(final))
+
+par(mar = c(3, 3, 5, 3))
+
+pie(final,
+    labels = labels,
+    col = colores,
+    main = "Distribución de Product Code",
+    cex = 0.65,
+    radius = 0.75)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(giscoR)
+library(stringi)
+library(scales)
+
+# Cantidad de ventas negativas
+sum(SalesDay$Sales_Uds < 0, na.rm = TRUE)
+
+# 1. Ventas por establecimiento
+sales_affiliated <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Total_Sales_Uds = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 2. Unir ventas con Affiliated_Outlets para obtener código postal
+sales_postal <- sales_affiliated %>%
+  left_join(
+    Affiliated_Outlets %>% select(Affiliated_Code, POSTALCODE),
+    by = "Affiliated_Code"
+  )
+
+# 3. Extraer provincia desde código postal
+sales_postal <- sales_postal %>%
+  mutate(
+    POSTALCODE = sprintf("%05d", as.numeric(POSTALCODE)),
+    Provincia_Code = substr(POSTALCODE, 1, 2)
+  )
+
+# 4. Tabla de provincias
+prov_map <- data.frame(
+  Provincia_Code = c("01","02","03","04","05","06","07","08","09","10",
+                     "11","12","13","14","15","16","17","18","19","20",
+                     "21","22","23","24","25","26","27","28","29","30",
+                     "31","32","33","34","35","36","37","38","39","40",
+                     "41","42","43","44","45","46","47","48","49","50",
+                     "51","52"),
+  provincia = c("Álava","Albacete","Alicante","Almería","Ávila","Badajoz",
+                "Balears","Barcelona","Burgos","Cáceres","Cádiz","Castellón",
+                "Ciudad Real","Córdoba","A Coruña","Cuenca","Girona","Granada",
+                "Guadalajara","Gipuzkoa","Huelva","Huesca","Jaén","León",
+                "Lleida","La Rioja","Lugo","Madrid","Málaga","Murcia",
+                "Navarra","Ourense","Asturias","Palencia","Las Palmas",
+                "Pontevedra","Salamanca","Santa Cruz de Tenerife","Cantabria",
+                "Segovia","Sevilla","Soria","Tarragona","Teruel","Toledo",
+                "Valencia","Valladolid","Bizkaia","Zamora","Zaragoza",
+                "Ceuta","Melilla")
+)
+
+# 5. Ventas por provincia
+sales_prov <- sales_postal %>%
+  left_join(prov_map, by = "Provincia_Code") %>%
+  group_by(provincia) %>%
+  summarise(
+    Total_Sales_Uds = sum(Total_Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 6. Descargar mapa de provincias de España
+spain_prov <- gisco_get_nuts(
+  country = "ES",
+  nuts_level = 3,
+  resolution = "20"
+)
+
+# 7. Normalizar nombres
+sales_prov <- sales_prov %>%
+  mutate(prov_clean = stri_trans_general(toupper(provincia), "Latin-ASCII"))
+
+spain_prov <- spain_prov %>%
+  mutate(prov_clean = stri_trans_general(toupper(NAME_LATN), "Latin-ASCII"))
+
+# 8. Unir mapa con ventas
+map_sales <- spain_prov %>%
+  left_join(sales_prov, by = "prov_clean")
+
+# 9. Filtrar Canarias, Ceuta y Melilla
+map_sales_filtrado <- map_sales %>%
+  filter(!prov_clean %in% c(
+    "LAS PALMAS",
+    "SANTA CRUZ DE TENERIFE",
+    "CEUTA",
+    "MELILLA"
+  ))
+
+# 10. Mapa final centrado en península + Baleares
+ggplot(map_sales_filtrado) +
+  geom_sf(aes(fill = Total_Sales_Uds), color = "white", size = 0.2) +
+  scale_fill_gradient(
+    low = "lightyellow",
+    high = "red",
+    na.value = "grey90",
+    labels = label_number(
+      big.mark = ".",
+      decimal.mark = ","
+    )
+  ) +
+  coord_sf(
+    xlim = c(-10, 5),
+    ylim = c(35.5, 44),
+    expand = FALSE
+  ) +
+  labs(
+    title = "Mapa de calor de unidades vendidas por provincia",
+    fill = "Unidades vendidas"
+  ) +
+  theme_minimal() +
+ theme(
+  axis.title = element_blank(),
+  axis.text = element_blank(),
+  axis.ticks = element_blank(),
+  panel.grid = element_blank(),
+  plot.title = element_text(
+    hjust = 0.5,
+    size = 18,
+    face = "bold",
+    margin = margin(b = 15)   # 👈 espacio debajo del título
+  ),
+  plot.margin = margin(t = 20, r = 10, b = 10, l = 10)  # 👈 MÁS espacio arriba
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(giscoR)
+library(scales)
+
+# =========================
+# 1. Ventas por establecimiento
+# =========================
+sales_affiliated <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Total_Sales_Uds = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# =========================
+# 2. Unir con código postal
+# =========================
+sales_postal <- sales_affiliated %>%
+  left_join(
+    Affiliated_Outlets %>% select(Affiliated_Code, POSTALCODE),
+    by = "Affiliated_Code"
+  ) %>%
+  mutate(
+    POSTALCODE = sprintf("%05d", as.numeric(POSTALCODE)),
+    Provincia_Code = substr(POSTALCODE, 1, 2)
+  )
+
+```
+
+```{r}
+# Crear tabla de provincias
+
+prov_map <- data.frame(
+  Provincia_Code = c("01","02","03","04","05","06","07","08","09","10",
+                     "11","12","13","14","15","16","17","18","19","20",
+                     "21","22","23","24","25","26","27","28","29","30",
+                     "31","32","33","34","35","36","37","38","39","40",
+                     "41","42","43","44","45","46","47","48","49","50",
+                     "51","52"),
+  provincia = c("Álava","Albacete","Alicante","Almería","Ávila","Badajoz",
+                "Balears","Barcelona","Burgos","Cáceres","Cádiz","Castellón",
+                "Ciudad Real","Córdoba","A Coruña","Cuenca","Girona","Granada",
+                "Guadalajara","Gipuzkoa","Huelva","Huesca","Jaén","León",
+                "Lleida","La Rioja","Lugo","Madrid","Málaga","Murcia",
+                "Navarra","Ourense","Asturias","Palencia","Las Palmas",
+                "Pontevedra","Salamanca","Santa Cruz de Tenerife","Cantabria",
+                "Segovia","Sevilla","Soria","Tarragona","Teruel","Toledo",
+                "Valencia","Valladolid","Bizkaia","Zamora","Zaragoza",
+                "Ceuta","Melilla"),
+  NUTS_ID = c("ES211","ES421","ES521","ES611","ES411","ES431",
+              "ES53","ES511","ES412","ES432","ES612","ES522",
+              "ES422","ES613","ES111","ES423","ES512","ES614",
+              "ES424","ES212","ES615","ES241","ES616","ES413",
+              "ES513","ES230","ES112","ES300","ES617","ES620",
+              "ES220","ES113","ES120","ES414","ES70",
+              "ES114","ES415","ES70","ES130","ES416",
+              "ES618","ES417","ES514","ES242","ES425",
+              "ES523","ES418","ES213","ES419","ES243",
+              "ES630","ES640"))
+```
+
+```{r}
+# Ventas por provincia
+sales_prov <- sales_postal %>%
+  left_join(prov_map, by = "Provincia_Code") %>%
+  group_by(NUTS_ID, provincia) %>%
+  summarise(
+    Total_Sales_Uds = sum(Total_Sales_Uds, na.rm = TRUE),
+    .groups = "drop")
+
+# Descargar mapa de provincias de Spain
+spain_prov <- gisco_get_nuts(
+  country = "ES",
+  nuts_level = 3,
+  resolution = "20")
+
+# Unir mapa y filtrar por peninsula, sin contar Canarias, Ceuta y Melilla
+map_sales <- spain_prov %>%
+  left_join(sales_prov, by = "NUTS_ID")
+
+map_sales_filtrado <- map_sales %>%
+  filter(!NUTS_ID %in% c(
+    "ES70",   # Canarias
+    "ES630",  # Ceuta
+    "ES640"   # Melilla
+  ))
+```
+
+```{r}
+# Crear visualización
+ggplot(map_sales_filtrado) +
+  geom_sf(aes(fill = Total_Sales_Uds), color = "white", size = 0.2) +
+  scale_fill_gradient(
+    low = "#fff7bc",
+    high = "red",
+    na.value = "grey90",
+    labels = label_number(
+      big.mark = ".",
+      decimal.mark = ",")) +
+  coord_sf(
+    xlim = c(-10, 5),
+    ylim = c(35.5, 44),
+    expand = FALSE) +
+  labs(
+    title = "Mapa de calor de unidades vendidas\npor provincia",
+    fill = "Unidades vendidas") +
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid = element_blank(),
+    plot.title = element_text(
+      hjust = 0.5,
+      size = 18,
+      face = "bold",
+      margin = margin(b = 15)),
+    plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+DeliveryDay %>%
+  ggplot(aes(y = Delivery_Uds)) +
+  geom_boxplot(fill = "#3B6EA8", alpha = 0.7, outlier.color = "red") +
+  labs(
+    title = "",
+    y = "") +
+  theme_minimal()
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+Product %>%
+  count(Format) %>%
+  mutate(
+    porcentaje = n/sum(n)*100
+  ) %>%
+  ggplot(aes(
+    x = reorder(Format, -porcentaje),
+    y = porcentaje
+  )) +
+  geom_col(fill = "#3B6EA8") +
+  geom_text(
+    aes(label = paste0(round(porcentaje,1), "%")),
+    vjust = -0.3
+  ) +
+  labs(
+    title = "Distribución de formatos de producto",
+    x = " ",
+    y = "Porcentaje (%)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+# Ajusta "Fecha" por el nombre real
+OoSDay <- OoSDay %>%
+  mutate(Date = parse_date_time(Fecha, orders = c("ymd", "dmy", "mdy")))
+
+# Agrupar por mes
+oos_mes <- OoSDay %>%
+  mutate(Mes = floor_date(Date, "month")) %>%
+  group_by(Mes) %>%
+  summarise(Registros = n(), .groups = "drop")
+
+# Completar meses
+todos_meses <- data.frame(
+  Mes = seq(min(oos_mes$Mes), max(oos_mes$Mes), by = "month")
+)
+
+oos_mes <- todos_meses %>%
+  left_join(oos_mes, by = "Mes") %>%
+  mutate(Registros = ifelse(is.na(Registros), 0, Registros))
+
+# Gráfico
+ggplot(oos_mes, aes(x = Mes, y = Registros)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "steelblue", size = 2) +
+  scale_x_date(date_labels = "%b", date_breaks = "1 month") +
+  labs(
+    title = "Distribución mensual de incidencias (OoSDay)",
+    y = "Número de registros",
+    x = ""
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+# 1. Convertir fecha
+OoSDay <- OoSDay %>%
+  mutate(
+    Fecha = ymd(as.character(OoS_DAY)),
+    Mes_num = month(Fecha)
+  )
+
+# 2. Contar registros por mes
+oos_mes <- OoSDay %>%
+  group_by(Mes_num) %>%
+  summarise(
+    Registros = n(),
+    .groups = "drop"
+  )
+
+# 3. Crear todos los meses (1–12)
+todos_meses <- data.frame(
+  Mes_num = 1:12
+)
+
+# 4. Unir y rellenar con 0
+oos_mes <- todos_meses %>%
+  left_join(oos_mes, by = "Mes_num") %>%
+  mutate(Registros = ifelse(is.na(Registros), 0, Registros))
+
+# 5. Nombres de meses en orden
+meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
+           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+
+oos_mes$Mes <- factor(meses[oos_mes$Mes_num], levels = meses)
+
+# 6. Gráfico
+ggplot(oos_mes, aes(x = Mes, y = Registros, group = 1)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_point(color = "steelblue", size = 2) +
+  labs(
+    title = "Distribución mensual de registros OoSDay",
+    x = "",
+    y = "Número de registros"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+# 1. Convertir fecha
+OoSDay <- OoSDay %>%
+  mutate(
+    Fecha = ymd(as.character(OoS_DAY)),
+    Mes_num = month(Fecha)
+  )
+
+# 2. Contar registros por mes
+oos_mes <- OoSDay %>%
+  group_by(Mes_num) %>%
+  summarise(
+    Registros = n(),
+    .groups = "drop"
+  )
+
+# 3. Crear todos los meses (1–12)
+todos_meses <- data.frame(
+  Mes_num = 1:12
+)
+
+# 4. Rellenar con 0
+oos_mes <- todos_meses %>%
+  left_join(oos_mes, by = "Mes_num") %>%
+  mutate(Registros = ifelse(is.na(Registros), 0, Registros))
+
+# 5. Nombres de meses
+meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
+           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+
+oos_mes$Mes <- factor(meses[oos_mes$Mes_num], levels = meses)
+
+# 6. Gráfico
+ggplot(oos_mes, aes(x = Mes, y = Registros, group = 1)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_point(color = "steelblue", size = 2) +
+  labs(
+    title = "Distribución mensual de OoSDay",
+    x = "",
+    y = ""   # 👈 quitamos "Número de registros"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# 1. Limpiar y quedarnos solo con fechas válidas
+delivery_clean <- DeliveryDay %>%
+  mutate(Delivery_DAY_txt = as.character(Delivery_DAY)) %>%
+  filter(nchar(Delivery_DAY_txt) == 8)  # solo fechas tipo 20150309
+
+# 2. Extraer el mes correctamente
+delivery_mes <- delivery_clean %>%
+  mutate(
+    Mes_num = as.numeric(substr(Delivery_DAY_txt, 5, 6))
+  ) %>%
+  filter(!is.na(Mes_num) & Mes_num >= 1 & Mes_num <= 12) %>%
+  group_by(Mes_num) %>%
+  summarise(
+    Registros = n(),
+    .groups = "drop"
+  )
+
+# 3. Asegurar meses 1–12
+todos_meses <- data.frame(Mes_num = 1:12)
+
+delivery_mes <- todos_meses %>%
+  left_join(delivery_mes, by = "Mes_num") %>%
+  mutate(Registros = ifelse(is.na(Registros), 0, Registros))
+
+# 4. Nombres de meses
+meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
+           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+
+delivery_mes$Mes <- factor(meses[delivery_mes$Mes_num], levels = meses)
+
+# 5. Gráfico
+ggplot(delivery_mes, aes(x = Mes, y = Registros, group = 1)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_point(color = "steelblue", size = 2) +
+  labs(
+    title = "Distribución mensual de registros DeliveryDay",
+    x = "",
+    y = ""
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
+```
+
+```{r}
+DeliveryDay <- read.csv("~/Downloads/DeliveryDay.csv", sep = ";")
+
+# 3. Crear fecha nueva SIN modificar Delivery_DAY
+DeliveryDay <- DeliveryDay %>%
+  mutate(
+    Delivery_DAY_txt = as.character(Delivery_DAY),
+    Fecha_Delivery = as.Date(Delivery_DAY_txt, format = "%Y%m%d"),
+    Mes_num = as.numeric(format(Fecha_Delivery, "%m"))
+  )
+
+# 4. Contar registros por mes
+delivery_mes <- DeliveryDay %>%
+  filter(!is.na(Mes_num)) %>%
+  group_by(Mes_num) %>%
+  summarise(
+    Registros = n(),
+    .groups = "drop"
+  )
+
+# 5. Crear todos los meses de enero a diciembre
+todos_meses <- data.frame(Mes_num = 1:12)
+
+delivery_mes <- todos_meses %>%
+  left_join(delivery_mes, by = "Mes_num") %>%
+  mutate(Registros = ifelse(is.na(Registros), 0, Registros))
+
+# 6. Nombres de meses
+meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
+           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+
+delivery_mes$Mes <- factor(meses[delivery_mes$Mes_num], levels = meses)
+
+# 7. Gráfico temporal
+ggplot(delivery_mes, aes(x = Mes, y = Registros, group = 1)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_point(color = "steelblue", size = 2) +
+  labs(
+    title = "Distribución mensual de DeliveryDay",
+    x = "",
+    y = ""
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# Convertir tamaño a valor numérico aproximado
+Affiliated_Outlets <- Affiliated_Outlets %>%
+  mutate(
+    Tam_num = case_when(
+      Tam_m2 == "<2m2" ~ 1,
+      Tam_m2 == "2-5m2" ~ 3.5,
+      Tam_m2 == "5-10m2" ~ 7.5,
+      Tam_m2 == "10-20m2" ~ 15,
+      Tam_m2 == "20-30m2" ~ 25,
+      Tam_m2 == ">30m2" ~ 35,
+      TRUE ~ NA_real_
+    )
+  )
+
+# Ventas por tienda
+sales_aff <- SalesDay %>%
+  group_by(Affiliated_Code) %>%
+  summarise(Ventas = sum(Sales_Uds, na.rm = TRUE), .groups = "drop")
+
+# Unir
+df_corr <- sales_aff %>%
+  left_join(Affiliated_Outlets, by = "Affiliated_Code") %>%
+  filter(!is.na(Tam_num))
+cor(df_corr$Tam_num, df_corr$Ventas)
+ggplot(df_corr, aes(x = Tam_num, y = Ventas)) +
+  geom_point(color = "steelblue", alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(
+    title = "Relación entre tamaño del establecimiento y ventas",
+    x = "Tamaño (m2)",
+    y = "Ventas"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# 1. Ventas por punto de venta
+sales_aff <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%   # excluye ventas negativas
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Ventas = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop")
+
+# 2. Unir ventas con tamaño del punto de venta
+df_corr <- sales_aff %>%
+  left_join(
+    Affiliated_Outlets %>% select(Affiliated_Code, Tam_m2),
+    by = "Affiliated_Code"
+  )
+
+# 3. Mantener N.D. y ordenar categorías
+df_corr <- df_corr %>%
+  mutate(
+    Tam_m2 = ifelse(is.na(Tam_m2) | Tam_m2 == "", "N.D.", Tam_m2),
+    Tam_m2 = factor(
+      Tam_m2,
+      levels = c("<2m2", "2-5m2", "5-10m2", "10-20m2",
+                 "20-30m2", ">30m2", ">20m2", "N.D.")))
+
+# 4. Crear gráfico boxplot
+ggplot(df_corr, aes(x = Tam_m2, y = Ventas)) +
+  geom_boxplot(fill = "steelblue", alpha = 0.7, outlier.alpha = 0.4) +
+  labs(
+    title = "Distribución de ventas según tamaño del punto de venta",
+    x = "",
+    y = ""
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# Ventas por establecimiento
+sales_cluster <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Ventas = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    Affiliated_Outlets %>% select(Affiliated_Code, Management_Cluster),
+    by = "Affiliated_Code"
+  )
+
+# Gráfico
+ggplot(sales_cluster, aes(x = factor(Management_Cluster), y = Ventas)) +
+  geom_boxplot(fill = "steelblue", alpha = 0.7, outlier.alpha = 0.3) +
+  labs(
+    title = "Distribución de ventas por cluster",
+    x = "Cluster",
+    y = "Ventas"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
+```
+
+```{r}
+ library(dplyr)
+library(ggplot2)
+library(scales)
+
+sales_cluster <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%   # 🔥 quitamos negativas
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Ventas = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    Affiliated_Outlets %>% select(Affiliated_Code, Management_Cluster),
+    by = "Affiliated_Code"
+  )
+
+ggplot(sales_cluster, aes(x = factor(Management_Cluster), y = Ventas)) +
+  geom_boxplot(fill = "steelblue", alpha = 0.7, outlier.alpha = 0.3) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Distribución de ventas por cluster",
+    x = "Cluster",
+    y = "Ventas"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+# Ventas por establecimiento + Engage, quitando ventas negativas
+sales_engage <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Ventas = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    Affiliated_Outlets %>% select(Affiliated_Code, Engage),
+    by = "Affiliated_Code"
+  )
+
+# Gráfico: ventas por nivel de engagement
+ggplot(sales_engage, aes(x = factor(Engage), y = Ventas)) +
+  geom_boxplot(fill = "steelblue", alpha = 0.7, outlier.alpha = 0.3) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Distribución de ventas por nivel de engagement",
+    x = "Nivel de engagement",
+    y = "Ventas"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+# 1. Crear ventas mensuales quitando ventas negativas
+ventas_mes <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  mutate(
+    Sales_DAY_txt = as.character(Sales_DAY),
+    Mes_num = as.numeric(substr(Sales_DAY_txt, 5, 6))
+  ) %>%
+  filter(!is.na(Mes_num), Mes_num >= 1, Mes_num <= 12) %>%
+  group_by(Mes_num) %>%
+  summarise(
+    Ventas = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 2. Crear todos los meses de enero a diciembre
+todos_meses <- data.frame(Mes_num = 1:12)
+
+ventas_mes <- todos_meses %>%
+  left_join(ventas_mes, by = "Mes_num") %>%
+  mutate(Ventas = ifelse(is.na(Ventas), 0, Ventas))
+
+# 3. Nombres de meses en orden
+meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
+           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+
+ventas_mes$Mes <- factor(meses[ventas_mes$Mes_num], levels = meses)
+
+# 4. Gráfico
+ggplot(ventas_mes, aes(x = Mes, y = Ventas, group = 1)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_point(color = "steelblue", size = 2) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title = "Evolución mensual de las ventas",
+    x = "",
+    y = "Ventas"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+```{r}
+#tabla de top 10 ciudades
+library(dplyr)
+library(ggplot2)
+library(stringr)
+
+# Diccionario de provincias por código postal
+provincias_cp <- data.frame(
+  cod_prov = c("01","02","03","04","05","06","07","08","09","10",
+               "11","12","13","14","15","16","17","18","19","20",
+               "21","22","23","24","25","26","27","28","29","30",
+               "31","32","33","34","35","36","37","38","39","40",
+               "41","42","43","44","45","46","47","48","49","50",
+               "51","52"),
+  Provincia = c("Álava","Albacete","Alicante","Almería","Ávila","Badajoz",
+                "Illes Balears","Barcelona","Burgos","Cáceres",
+                "Cádiz","Castellón","Ciudad Real","Córdoba","A Coruña",
+                "Cuenca","Girona","Granada","Guadalajara","Gipuzkoa",
+                "Huelva","Huesca","Jaén","León","Lleida","La Rioja",
+                "Lugo","Madrid","Málaga","Murcia","Navarra","Ourense",
+                "Asturias","Palencia","Las Palmas","Pontevedra",
+                "Salamanca","Santa Cruz de Tenerife","Cantabria","Segovia",
+                "Sevilla","Soria","Tarragona","Teruel","Toledo","Valencia",
+                "Valladolid","Vizcaya","Zamora","Zaragoza",
+                "Ceuta","Melilla")
+)
+
+# Crear provincia desde POSTALCODE
+affiliated_provincias <- Affiliated_Outlets %>%
+  mutate(
+    POSTALCODE = str_pad(as.character(POSTALCODE), width = 5, pad = "0"),
+    cod_prov = substr(POSTALCODE, 1, 2)
+  ) %>%
+  left_join(provincias_cp, by = "cod_prov")
+
+# Top 10 provincias con más puntos de venta
+top10_provincias <- affiliated_provincias %>%
+  filter(!is.na(Provincia)) %>%
+  count(Provincia, name = "Numero_puntos_venta") %>%
+  arrange(desc(Numero_puntos_venta)) %>%
+  slice_head(n = 10)
+
+# Gráfico
+ggplot(top10_provincias,
+       aes(x = reorder(Provincia, -Numero_puntos_venta),
+           y = Numero_puntos_venta)) +
+  geom_col() +
+  labs(
+    title = "Top 10 Provincias con más puntos de venta",
+    x = "Provincia",
+    y = "Número de puntos de venta"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+```{r}
+ggplot(top10_provincias,
+       aes(x = reorder(Provincia, -Numero_puntos_venta),
+           y = Numero_puntos_venta)) +
+  
+  geom_col(fill = "#1f77b4") +   # Color azul
+  
+  labs(
+    title = "Top 10 Provincias con más puntos de venta",
+    x = "Provincia",
+    y = "Número de puntos de venta"
+  ) +
+  
+  theme_minimal() +
+  
+  theme(
+    panel.grid = element_blank(),          # Quita líneas del fondo
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    ),
+    plot.title = element_text(
+      face = "bold",
+      size = 18
+    ),
+    axis.title = element_text(
+      size = 14
+    )
+  )
+```
+
+```{r}
+library(dplyr)
+
+# Ventas por afiliado
+ventas_afiliados <- SalesDay %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Ventas = sum(Sales_Uds, na.rm = TRUE),
+    Productos = n_distinct(Product_Code)
+  )
+
+# Entregas realizadas por afiliado
+entregas_afiliados <- DeliveryDay %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Entregas = sum(Delivery_Uds, na.rm = TRUE)
+  )
+
+# Envíos programados por afiliado
+envios_programados_afiliados <- RouteDay %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Envios_Programados = n()
+  )
+
+# Unir tablas
+datos <- ventas_afiliados %>%
+  left_join(entregas_afiliados,
+            by = "Affiliated_Code") %>%
+  left_join(envios_programados_afiliados,
+            by = "Affiliated_Code")
+
+# Matriz de correlación
+matriz <- cor(
+  datos[, c(
+    "Ventas",
+    "Productos",
+    "Entregas",
+    "Envios_Programados"
+  )],
+  use = "complete.obs"
+)
+
+matriz
+```
+
+```{r}
+library(corrplot)
+
+corrplot(
+  matriz,
+  method = "color",
+  type = "upper",
+  addCoef.col = "black"
+)
+```
+
+```{r}
+# Ventas medias por tamaño del establecimiento
+library(dplyr)
+library(ggplot2)
+
+# Ventas totales por afiliado
+ventas_tam <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Ventas_Totales = sum(Sales_Uds, na.rm = TRUE)
+  ) %>%
+  left_join(
+    Affiliated_Outlets,
+    by = "Affiliated_Code"
+  ) %>%
+  group_by(Tam_m2) %>%
+  summarise(
+    Ventas_Medias = mean(Ventas_Totales, na.rm = TRUE)
+  ) %>%
+  arrange(desc(Ventas_Medias))
+
+# Gráfico
+ggplot(
+  ventas_tam,
+  aes(
+    x = reorder(Tam_m2, -Ventas_Medias),
+    y = Ventas_Medias
+  )
+) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Ventas medias por tamaño del punto de venta",
+    x = "",
+    y = "Ventas Medias"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(
+      face = "bold",
+      hjust = 0.5,
+      size = 18
+    ),
+    axis.title = element_text(size = 14),
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1
+    )
+  )
+```
+
+```{r}
+EJEMPLO
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+# Ventas totales por afiliado
+ventas_afiliado <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Ventas_Totales = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Ventas totales por municipio
+ventas_municipio <- ventas_afiliado %>%
+  left_join(Affiliated_Outlets, by = "Affiliated_Code") %>%
+  left_join(
+    Postal_Codes,
+    by = c("POSTALCODE" = "codigo_postal")
+  ) %>%
+  filter(!is.na(municipio_nombre)) %>%
+  group_by(municipio_nombre) %>%
+  summarise(
+    Ventas_Totales = sum(Ventas_Totales, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Ventas_Totales)) %>%
+  slice_head(n = 20)
+
+# Orden correcto para que el mayor salga arriba
+ventas_municipio$municipio_nombre <- factor(
+  ventas_municipio$municipio_nombre,
+  levels = rev(ventas_municipio$municipio_nombre)
+)
+
+# Gráfico
+ggplot(
+  ventas_municipio,
+  aes(
+    x = municipio_nombre,
+    y = Ventas_Totales
+  )
+) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Top 20 municipios con más Ventas",
+    x = "Municipio",
+    y = "Total de ventas"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 18),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12)
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+# Ventas totales por afiliado
+ventas_afiliado <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Ventas_Totales = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Ventas totales por municipio
+ventas_municipio <- ventas_afiliado %>%
+  left_join(
+    Affiliated_Outlets,
+    by = "Affiliated_Code"
+  ) %>%
+  left_join(
+    Postal_Codes,
+    by = c("POSTALCODE" = "codigo_postal")
+  ) %>%
+  filter(!is.na(municipio_nombre)) %>%
+  group_by(municipio_nombre) %>%
+  summarise(
+    Ventas_Totales = sum(Ventas_Totales, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Ventas_Totales)) %>%
+  slice_head(n = 20)
+
+# Ordenar para que el municipio con más ventas salga arriba
+ventas_municipio$municipio_nombre <- factor(
+  ventas_municipio$municipio_nombre,
+  levels = rev(ventas_municipio$municipio_nombre)
+)
+
+# Gráfico
+ggplot(
+  ventas_municipio,
+  aes(
+    x = municipio_nombre,
+    y = Ventas_Totales
+  )
+) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  scale_y_continuous(
+    labels = label_number(
+      big.mark = ".",
+      decimal.mark = ","
+    )
+  ) +
+  labs(
+    title = "Top 20 Municipios con más Ventas",
+    x = "Municipio",
+    y = "Total de ventas"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(
+      face = "bold",
+      size = 18,
+      hjust = 0.5
+    ),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12)
+  )
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+# Ventas totales por afiliado
+ventas_afiliado <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    Ventas_Totales = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Ventas por municipio
+ventas_municipio <- ventas_afiliado %>%
+  left_join(
+    Affiliated_Outlets,
+    by = "Affiliated_Code"
+  ) %>%
+  left_join(
+    Postal_Codes,
+    by = c("POSTALCODE" = "codigo_postal")
+  ) %>%
+  filter(!is.na(municipio_nombre)) %>%
+  group_by(municipio_nombre) %>%
+  summarise(
+    Ventas_Totales = sum(Ventas_Totales, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(Ventas_Totales)) %>%
+  slice_head(n = 20)
+
+# Acortar nombres demasiado largos
+ventas_municipio <- ventas_municipio %>%
+  mutate(
+    municipio_nombre = case_when(
+      municipio_nombre == "Castellón de la Plana/Castelló de la Plana" ~ "Castellón",
+      municipio_nombre == "Alicante/Alacant" ~ "Alicante",
+      municipio_nombre == "Palma de Mallorca" ~ "Palma",
+      TRUE ~ municipio_nombre
+    )
+  )
+
+# Ordenar para que el mayor aparezca arriba
+ventas_municipio$municipio_nombre <- factor(
+  ventas_municipio$municipio_nombre,
+  levels = rev(ventas_municipio$municipio_nombre)
+)
+
+# Gráfico
+ggplot(
+  ventas_municipio,
+  aes(
+    x = municipio_nombre,
+    y = Ventas_Totales
+  )
+) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  scale_y_continuous(
+    labels = label_number(
+      big.mark = ".",
+      decimal.mark = ","
+    )
+  ) +
+  labs(
+    title = "Top 20 Municipios con más Ventas",
+    x = "",
+    y = "Total de ventas"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(
+      face = "bold",
+      size = 20,
+      hjust = 0.5
+    ),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12)
+  )
+```
+
+```{r}
+library(dplyr)
+
+datos_corr <- Affiliated_Outlets %>%
+  select(Engage, Location, Tam_m2) %>%
+  filter(Tam_m2 != "N.D.")
+
+# Convertir a numérico
+datos_corr$Engage <- as.numeric(as.factor(datos_corr$Engage))
+datos_corr$Location <- as.numeric(as.factor(datos_corr$Location))
+datos_corr$Tam_m2 <- as.numeric(as.factor(datos_corr$Tam_m2))
+```
+
+```{r}
+matriz_corr <- cor(datos_corr)
+
+matriz_corr
+```
+
+```{r}
+library(corrplot)
+
+corrplot(
+  matriz_corr,
+  method = "color",
+  type = "upper",
+  addCoef.col = "black",
+  tl.col = "black",
+  tl.srt = 0,
+  col = colorRampPalette(c("#D9E6F2", "#08306B"))(200)
+)
+```
+
+```{r}
+corrplot(
+  matriz_corr,
+  method = "color",
+  type = "upper",
+  addCoef.col = "black",
+  tl.col = "black",
+  tl.cex = 1,      # Tamaño de etiquetas
+  tl.srt = 0,      # Horizontal
+  number.cex = 1,  # Tamaño de coeficientes
+  mar = c(1,1,3,1) # Margen superior
+)
+```
+
+```{r}
+# Carga de librerias
+library(corrplot)
+
+# Paleta de colores
+colores_corr <- colorRampPalette(c(
+  "#B2182B",  
+  "#F7F7F7",
+  "#2C7FB8" ))(200)
+
+# Crear gráfico
+corrplot(
+  matriz_corr,
+  method = "color",
+  type = "upper",
+  col = colores_corr,
+  addCoef.col = "black",
+  number.cex = 1.1,
+  number.digits = 2,
+  tl.col = "black",
+  tl.srt = 45,
+  tl.cex = 1.2,
+  cl.cex = 1,
+  diag = TRUE,
+  mar = c(0, 0, 2, 0)
+)
+```
+
+```{r}
+
+corrplot(
+  matriz_corr,
+  method = "color",
+  type = "upper",
+  addCoef.col = "black",
+  tl.col = "black",
+  tl.cex = 1,
+  tl.srt = 0,
+  mar = c(0, 0, 5, 0)
+)
+par(mar = c(1, 1, 6, 1))
+```
+
+```{r}
+
+library(corrplot)
+
+# Renombrar variables para que se vean bien
+colnames(matriz_corr) <- c(
+  "Engage",
+  "Location",
+  "Tam. Est."
+)
+
+rownames(matriz_corr) <- c(
+  "Engage",
+  "Location",
+  "Tam. Est."
+)
+
+corrplot(
+  matriz_corr,
+  method = "color",
+  type = "upper",
+  addCoef.col = "black",
+  tl.col = "black",
+  tl.cex = 1.2,
+  tl.srt = 45,
+  number.cex = 1.2,
+  mar = c(1,1,2,1)
+)
+
+```
+
+```{r fig.width=10, fig.height=7}
+
+library(dplyr)
+library(corrplot)
+
+# 1. Preparar variables de Affiliated_Outlets
+datos_corr_afiliados <- Affiliated_Outlets %>%
+  mutate(
+    Engage = as.numeric(Engage),
+    
+    # Convertimos Location a número para poder calcular correlación
+    Location = as.numeric(as.factor(Location)),
+    
+    # Convertimos Tam_m2 a valores numéricos aproximados
+    Tam_m2 = case_when(
+      Tam_m2 == "<2" ~ 1,
+      Tam_m2 == "2-5" ~ 3.5,
+      Tam_m2 == "5-10" ~ 7.5,
+      Tam_m2 == "10-20" ~ 15,
+      Tam_m2 == "20-30" ~ 25,
+      Tam_m2 == ">20" ~ 25,
+      Tam_m2 == ">30" ~ 35,
+      Tam_m2 == "N.D." ~ NA_real_,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(
+    Engage,
+    Location,
+    Tam_m2
+  )
+
+# 2. Crear matriz de correlación
+matriz_corr_afiliados <- cor(
+  datos_corr_afiliados,
+  use = "complete.obs",
+  method = "pearson"
+)
+
+# 3. Nombres de variables
+colnames(matriz_corr_afiliados) <- c(
+  "Engage",
+  "Location",
+  "Tam_m2"
+)
+
+rownames(matriz_corr_afiliados) <- c(
+  "Engage",
+  "Location",
+  "Tam_m2"
+)
+
+# 4. Paleta de colores igual que la anterior
+colores_corr <- colorRampPalette(c(
+  "#B2182B",  # rojo para correlaciones negativas
+  "#F7F7F7",  # blanco para valores cercanos a 0
+  "#08306B"   # azul oscuro
+))(200)
+
+# 5. Gráfico de correlación
+corrplot(
+  matriz_corr_afiliados,
+  method = "color",
+  type = "upper",
+  col = colores_corr,
+  addCoef.col = "black",
+  tl.col = "black",
+  tl.cex = 0.9,
+  tl.srt = 45,
+  number.cex = 1.1,
+  number.digits = 2,
+  cl.cex = 1,
+  diag = TRUE,
+  mar = c(0, 0, 1, 0)
+)
+
+
+```
+
+```{r fig.width=10, fig.height=7}
+#OFICIAL USADO
+library(dplyr)
+library(corrplot)
+
+# 1. Preparar variables de Affiliated_Outlets
+datos_corr_afiliados <- Affiliated_Outlets %>%
+  mutate(
+    Engage = as.numeric(Engage),
+    
+    # Convertimos Location a número
+    Location = as.numeric(as.factor(Location)),
+    
+    # Limpiamos Tam_m2
+    Tam_m2_limpio = trimws(as.character(Tam_m2)),
+    
+    # Convertimos Tam_m2 a valores numéricos aproximados
+    Tam_m2 = case_when(
+      grepl("<2", Tam_m2_limpio) ~ 1,
+      grepl("2-5", Tam_m2_limpio) ~ 3.5,
+      grepl("5-10", Tam_m2_limpio) ~ 7.5,
+      grepl("10-20", Tam_m2_limpio) ~ 15,
+      grepl("20-30", Tam_m2_limpio) ~ 25,
+      grepl(">20", Tam_m2_limpio) ~ 25,
+      grepl(">30", Tam_m2_limpio) ~ 35,
+      grepl("N.D.", Tam_m2_limpio) ~ NA_real_,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(
+    Engage,
+    Location,
+    Tam_m2
+  )
+
+# 2. Crear matriz de correlación
+matriz_corr_afiliados <- cor(
+  datos_corr_afiliados,
+  use = "pairwise.complete.obs",
+  method = "pearson"
+)
+
+# 3. Nombres de variables
+colnames(matriz_corr_afiliados) <- c(
+  "Engage",
+  "Location",
+  "Tam_m2"
+)
+
+rownames(matriz_corr_afiliados) <- c(
+  "Engage",
+  "Location",
+  "Tam_m2"
+)
+
+# 4. Paleta de colores suave
+colores_corr <- colorRampPalette(c(
+  "#B2182B",  # rojo
+  "#F7F7F7",  # blanco
+  "#5DA5D8"   # azul claro
+))(200)
+
+# 5. Gráfico de correlación
+corrplot(
+  matriz_corr_afiliados,
+  method = "color",
+  type = "upper",
+  col = colores_corr,
+  addCoef.col = "black",
+  tl.col = "black",
+  tl.cex = 0.9,
+  tl.srt = 45,
+  number.cex = 1.1,
+  number.digits = 2,
+  cl.cex = 1,
+  diag = TRUE,
+  mar = c(0, 0, 1, 0)
+)
+
+```
+
+```{r}
+#EDA: SalesDay, Analisis de Distribucion de Valores positivos
+  library(dplyr)
+library(ggplot2)
+
+SalesDay %>%
+  filter(Sales_Uds > 0) %>%
+  mutate(
+    rango_ventas = case_when(
+      Sales_Uds == 1 ~ "1",
+      Sales_Uds == 2 ~ "2",
+      Sales_Uds == 3 ~ "3",
+      Sales_Uds == 4 ~ "4",
+      Sales_Uds == 5 ~ "5",
+      Sales_Uds >= 6  & Sales_Uds <= 10  ~ "6-10",
+      Sales_Uds >= 11 & Sales_Uds <= 20  ~ "11-20",
+      Sales_Uds >= 21 & Sales_Uds <= 50  ~ "21-50",
+      Sales_Uds >= 51 & Sales_Uds <= 100 ~ "51-100",
+      Sales_Uds > 100 ~ ">100"
+    )
+  ) %>%
+  count(rango_ventas) %>%
+  mutate(
+    rango_ventas = factor(
+      rango_ventas,
+      levels = c("1", "2", "3", "4", "5", "6-10", "11-20", "21-50", "51-100", ">100")
+    )
+  ) %>%
+  ggplot(aes(x = rango_ventas, y = n)) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Distribución de unidades vendidas positivas",
+    x = "Rango de unidades vendidas",
+    y = "Frecuencia"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black")
+  )
+```
+
+```{r}
+# EDA: SalesDay, análisis de distribución de valores negativos
+
+SalesDay %>%
+  filter(Sales_Uds < 0) %>%
+  count(Sales_Uds) %>%
+  mutate(
+    Sales_Uds = factor(Sales_Uds, levels = sort(unique(Sales_Uds)))
+  ) %>%
+  ggplot(aes(x = Sales_Uds, y = n)) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Valores Negativos en Unidades Vendidas",
+    x = "Unidades vendidas",
+    y = "Frecuencia"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black")
+  )
+```
+
+```{r}
+# DISTRIBUCIÓN EDA: ROUTEDAY - Distribución mensual
+
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+# Convertimos Route_DAY a formato fecha
+RouteDay <- RouteDay %>%
+  mutate(
+    Route_DAY = as.Date(as.character(Route_DAY), format = "%Y%m%d"),
+    Mes = month(Route_DAY, label = TRUE, abbr = FALSE)
+  )
+
+# Agrupación mensual de registros de rutas
+RouteDay_mes <- RouteDay %>%
+  group_by(Mes) %>%
+  summarise(registros_ruta = n())
+
+# Gráfico mensual
+ggplot(RouteDay_mes, aes(x = Mes, y = registros_ruta, group = 1)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_point(color = "steelblue", size = 2) +
+  labs(
+    title = "Distribución mensual de RouteDay",
+    x = "Mes",
+    y = "Número de registros de ruta"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+```{r}
+#Matriz de correlacion de informacion de producto
+library(dplyr)
+library(corrplot)
+
+# 1. Limpiar tabla Product para evitar duplicados por Product_Code
+Product_limpio <- Product %>%
+  distinct(Product_Code, .keep_all = TRUE) %>%
+  mutate(
+    Format = as.factor(Format),
+    SIZE_num = as.numeric(as.character(SIZE))
+  )
+
+# 2. Calcular ventas totales por producto
+ventas_por_producto <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  group_by(Product_Code) %>%
+  summarise(
+    Ventas_Totales = sum(Sales_Uds, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 3. Unir ventas con características del producto
+datos_producto_corr <- ventas_por_producto %>%
+  left_join(Product_limpio, by = "Product_Code") %>%
+  filter(
+    !is.na(Format),
+    !is.na(SIZE_num)
+  )
+
+# 4. Convertir Format en variables numéricas dummy
+format_dummies <- model.matrix(~ Format - 1, data = datos_producto_corr) %>%
+  as.data.frame()
+
+# 5. Preparar datos para correlación
+datos_corr_producto <- bind_cols(
+  datos_producto_corr %>%
+    select(
+      Ventas_Totales,
+      SIZE_num
+    ),
+  format_dummies
+)
+
+# 6. Renombrar columnas
+colnames(datos_corr_producto) <- c(
+  "Ventas",
+  "Tamaño",
+  "Formato_ASL",
+  "Formato_ATA",
+  "Formato_ETO"
+)
+
+# 7. Crear matriz de correlación
+matriz_corr_producto <- cor(
+  datos_corr_producto,
+  use = "complete.obs",
+  method = "pearson"
+)
+
+# 8. Paleta de colores suave como la anterior
+colores_corr <- colorRampPalette(c(
+  "#B2182B",  # rojo
+  "#F7F7F7",  # blanco
+  "#5DA5D8"   # azul claro
+))(200)
+
+# 9. Gráfico de correlación
+corrplot(
+  matriz_corr_producto,
+  method = "color",
+  type = "upper",
+  col = colores_corr,
+  addCoef.col = "black",
+  tl.col = "black",
+  tl.cex = 0.9,
+  tl.srt = 45,
+  number.cex = 1.1,
+  number.digits = 2,
+  cl.cex = 1,
+  diag = TRUE,
+  mar = c(0, 0, 1, 0)
+)
+```
+
+```{r}
+# CLUSTERIZACION
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(cluster)
+library(factoextra)
+
+# Ventas por afiliado
+ventas_afiliado <- SalesDay %>%
+  filter(Sales_Uds > 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    ventas_totales = sum(Sales_Uds, na.rm = TRUE),
+    ventas_medias = mean(Sales_Uds, na.rm = TRUE),
+    num_dias_venta = n_distinct(Sales_DAY),
+    .groups = "drop"
+  )
+
+# Entregas por afiliado
+entregas_afiliado <- DeliveryDay %>%
+  filter(Delivery_Uds > 0) %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    total_entregas = sum(Delivery_Uds, na.rm = TRUE),
+    num_dias_entrega = n_distinct(Delivery_DAY),
+    .groups = "drop"
+  )
+
+# Roturas por afiliado
+oos_afiliado <- OoSDay %>%
+  group_by(Affiliated_Code) %>%
+  summarise(
+    num_roturas_stock = n(),
+    .groups = "drop"
+  )
+
+# Tabla final
+cluster_data <- Affiliated_Outlets %>%
+  left_join(ventas_afiliado, by = "Affiliated_Code") %>%
+  left_join(entregas_afiliado, by = "Affiliated_Code") %>%
+  left_join(oos_afiliado, by = "Affiliated_Code") %>%
+  mutate(across(c(ventas_totales, ventas_medias, num_dias_venta,
+                  total_entregas, num_dias_entrega, num_roturas_stock),
+                ~replace_na(.x, 0)))
+```
+
+```{r}
+# Seleccionar variables
+datos_kmeans <- cluster_data %>%
+  select(
+    ventas_totales,
+    ventas_medias,
+    num_dias_venta,
+    total_entregas,
+    num_dias_entrega,
+    num_roturas_stock,
+    Engage,
+    Management_Cluster
+  )
+
+#Quitar importancia por escala
+datos_kmeans_scaled <- scale(datos_kmeans)
+
+```
+
+```{r}
+
+#Metodo del codo
+fviz_nbclust(datos_kmeans_scaled, kmeans, method = "wss") +
+  labs(title = "Método del codo para determinar el número óptimo de clústeres")
+```
+
+```{r}
+#Aplicamos Kmeans
+#se han escogido 4 clusters
+set.seed(123)
+
+modelo_kmeans <- kmeans(datos_kmeans_scaled, centers = 4, nstart = 25)
+
+cluster_data$cluster <- as.factor(modelo_kmeans$cluster)
+```
+
+```{r}
+# Interpretacion
+resumen_clusters <- cluster_data %>%
+  group_by(cluster) %>%
+  summarise(
+    afiliados = n(),
+    ventas_totales_media = mean(ventas_totales),
+    ventas_medias_media = mean(ventas_medias),
+    entregas_media = mean(total_entregas),
+    roturas_media = mean(num_roturas_stock),
+    engage_medio = mean(Engage, na.rm = TRUE),
+    .groups = "drop"
+  )
+#Grafico de clusters(ventas medias por afiliado)
+resumen_clusters
+ggplot(resumen_clusters, aes(x = cluster, y = ventas_totales_media)) +
+  geom_col() +
+  labs(
+    title = "Ventas medias por clúster de afiliados",
+    x = "Clúster",
+    y = "Ventas medias"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Carga de librerias
+library(dplyr)
+library(readr)
+library(stringr)
+library(lubridate)
+library(ggplot2)
+library(tidyr)
+library(cluster)
+library(factoextra)
+```
+
+```{r}
+# 
+setwd("~/Downloads")
+Affiliated_Outlets <- read.csv("Affiliated_Outlets.csv", sep = ";")
+Postal_Codes <- read.csv("codigos_postales_municipios.csv")
+DeliveryDay <- read.csv("DeliveryDay.csv", sep = ";")
+OoSDay<- read.csv("OoSDay.csv",  sep = ";")
+Product <- read.csv("Product.csv",  sep = ";")
+RouteDay <- read.csv("RouteDay.csv", sep = ";")
+SalesDay<- read.csv("SalesDay (1).csv",  sep = ";")
+```
+
+```{r}
+paquetes <- c(
+  "dplyr", "readr", "readxl", "stringr", "tidyr",
+  "ggplot2", "factoextra", "cluster"
+)
+
+for (p in paquetes) {
+  if (!require(p, character.only = TRUE)) {
+    install.packages(p)
+    library(p, character.only = TRUE)
+  }
+}
+```
+
+```{r}
+# =========================
+# 3. Cargar fuentes externas 2015
+# =========================
+library(readxl)
+
+Prov_Unidades_2015 <- read_excel(file.choose())
+Prov_Euros_2015 <- read_excel(file.choose())
+PIB <- read_excel(file.choose())
+```
+
+```{r}
+library(dplyr)
+library(lubridate)
+library(forecast)
+library(ggplot2)
+
+ventas_semana <- SalesDay %>%
+  filter(Sales_Uds >= 0) %>%
+  mutate(
+    Fecha = ymd(Sales_DAY),
+    Semana = floor_date(Fecha, unit = "week")
+  ) %>%
+  group_by(Semana) %>%
+  summarise(Ventas = sum(Sales_Uds, na.rm = TRUE), .groups = "drop") %>%
+  arrange(Semana)
+
+serie_ventas <- ts(ventas_semana$Ventas, frequency = 52)
+
+modelo_arima <- auto.arima(serie_ventas)
+
+prediccion_2016 <- forecast(modelo_arima, h = 52)
+
+autoplot(prediccion_2016) +
+  labs(
+    title = "Predicción semanal de ventas internas para 2016",
+    x = "Semanas",
+    y = "Unidades vendidas"
+  )
+```
