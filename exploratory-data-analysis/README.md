@@ -1,6 +1,6 @@
-# Exploratory Data Analysis in R
+# Exploratory and Advanced Data Analysis in R
 
-This folder contains the R code used to explore, validate and visualise the datasets included in the Business Intelligence project.
+This folder contains the R Markdown analysis used to explore, validate and visualise the project datasets, as well as to perform clustering and forecasting experiments.
 
 ## Analysis performed
 
@@ -16,8 +16,9 @@ This folder contains the R code used to explore, validate and visualise the data
 
 ## Files
 
-- `exploratory-data-analysis.R`: clean and structured R script used for the exploratory analysis.
-- `exploratory-data-analysis.Rmd`: documented analysis combining explanations, code and visualisations.
+- [`exploratory-and-advanced-analysis.Rmd`](./exploratory-and-advanced-analysis.Rmd): R Markdown analysis covering data validation, descriptive statistics, exploratory visualisations, relationships between variables, clustering and forecasting.
+
+> The current analysis is written primarily in Spanish. An English version may be added in a future update.
 
 ## Main libraries
 
