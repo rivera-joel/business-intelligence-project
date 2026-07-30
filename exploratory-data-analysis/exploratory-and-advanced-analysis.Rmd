@@ -1,5 +1,5 @@
 ---
-title: "EXPLORATORY AND ADVANCED ANALYSIS
+title: "Exploratory and Advanced Analysis"
 output: html_notebook
 ---
 
@@ -9,7 +9,33 @@ output: html_notebook
 
 # =================================
 
+## Analysis workflow
+
+This notebook documents the complete analytical process used to explore the operational datasets and prepare the visualisations, segmentation model and forecast. Each code block is preceded by four elements:
+
+-   **Purpose:** what the block is intended to achieve.
+-   **Why this is done:** why the step is necessary in the wider analysis.
+-   **Step-by-step:** how the code transforms or analyses the data.
+-   **Expected result:** what object, statistic or visualisation the block produces.
+
+The workflow moves through data loading, data-quality checks, exploratory data analysis, correlation analysis, geographic analysis, operational visualisation, clustering and time-series forecasting. Negative sales or delivery values are excluded from several positive-activity totals so that adjustments do not distort operational volumes; they are analysed separately where relevant. No numerical conclusion is stated in advance because the results depend on the source files used when the notebook is executed.
+
 ## LIBRARIES
+
+#### Step 1 — Load the core R packages
+
+**Purpose.** Make the functions required for data manipulation, file import and descriptive statistics available.
+
+**Why this is done.** Loading packages at the beginning makes the notebook reproducible and ensures that later functions such as `filter()`, `read_excel()` and `describe()` are recognised.
+
+**Step-by-step.**
+
+1.  `dplyr` is used for data transformation and aggregation.
+2.  `readxl` is used when Excel files need to be imported.
+3.  `psych` provides extended descriptive statistics.
+4.  `base` contains standard R functionality and is loaded by default, but it is listed explicitly here.
+
+**Expected result.** The R session is prepared for the exploratory analysis.
 
 ```{r}
 library(dplyr)
@@ -19,6 +45,20 @@ library(psych)
 ```
 
 ## DATA LOADING
+
+#### Step 2 — Load the source datasets
+
+**Purpose.** Import the operational files that will be used throughout the analysis.
+
+**Why this is done.** All later calculations depend on these tables being available in memory with consistent object names.
+
+**Step-by-step.**
+
+1.  Set the working directory to the folder containing the files.
+2.  Read each CSV file into a separate R object.
+3.  Use the semicolon separator for files that were exported with that delimiter.
+
+**Expected result.** Seven data frames are created: outlet, postal-code, delivery, out-of-stock, product, route and sales data.
 
 ```{r}
 
@@ -37,6 +77,21 @@ SalesDay<- read.csv("SalesDay (1).csv",  sep = ";")
 
 ### - *Affiliated Outlets*
 
+#### Step 3 — Inspect the structure of `Affiliated_Outlets`
+
+**Purpose.** Perform an initial inspection of the `Affiliated_Outlets` dataset before any transformation or modelling.
+
+**Why this is done.** Understanding column names, data types, dimensions and sample values helps identify import problems and determines which preparation steps are required.
+
+**Step-by-step.**
+
+1.  `str()` shows the type and structure of every variable.
+2.  `head()` displays the first observations for a quick visual check.
+3.  `dim()` reports the number of rows and columns.
+4.  `names()` confirms the available field names.
+
+**Expected result.** A structural profile of the dataset is produced.
+
 ```{r}
 #Exploration
 str(Affiliated_Outlets)
@@ -45,62 +100,182 @@ dim(Affiliated_Outlets)
 names(Affiliated_Outlets)
 ```
 
+#### Step 4 — Check missing values in `Affiliated_Outlets`
+
+**Purpose.** Measure the number of `NA` values in each column of `Affiliated_Outlets`.
+
+**Why this is done.** Missing values can affect summaries, joins, correlations and charts. Detecting them early prevents silent data loss or biased results.
+
+**Step-by-step.**
+
+1.  `is.na()` identifies every missing cell.
+2.  `colSums(is.na(...))` totals the missing observations by variable.
+
+**Expected result.** A column-level missing-value count is returned.
+
 ```{r}
 #Null value check
 is.na(Affiliated_Outlets)
 colSums(is.na(Affiliated_Outlets))
 ```
 
+#### Step 5 — Quantify unknown outlet-size records
+
+**Purpose.** Calculate how many outlet-size observations are recorded as `N.D.` and what percentage of the dataset they represent.
+
+**Why this is done.** The `N.D.` category is not a numeric size. Measuring its prevalence shows whether it could materially affect analyses involving store size.
+
+**Step-by-step.**
+
+1.  Count records where `Tam_m2` equals `N.D.`.
+2.  Count the total number of outlet records.
+3.  Divide the unknown-size count by the total and convert it to a percentage.
+
+**Expected result.** The absolute count and percentage of unknown outlet sizes are returned.
+
 ```{r}
-# Suma de valores descritos como "N.D."
+# Count of values recorded as "N.D."
 ND_total<-sum(Affiliated_Outlets$Tam_m2 == "N.D.", na.rm = TRUE)
 
-# Total de registros
+# Total number of records
 Registros_total <- nrow(Affiliated_Outlets)
 
-# Cantidad de registros "N.D." sobre el total de registros
+# Percentage of "N.D." records out of all records
 ND_porcentaje <- (ND_total / Registros_total) * 100
 ND_porcentaje
 ```
 
+#### Step 6 — Check empty strings in `Affiliated_Outlets`
+
+**Purpose.** Detect blank text values that are not stored as formal `NA` values.
+
+**Why this is done.** CSV files often contain empty strings instead of true missing values. These blanks need to be identified because they may otherwise be treated as valid categories.
+
+**Step-by-step.**
+
+1.  Compare each value with an empty string.
+2.  Sum the matches by column.
+
+**Expected result.** The number of blank entries in each variable is displayed.
+
 ```{r}
-# Valores vacíos
+# Empty values
 colSums(Affiliated_Outlets == "", na.rm = TRUE)
 ```
 
+#### Step 7 — Review variable cardinality in `Affiliated_Outlets`
+
+**Purpose.** Count the number of distinct values in every column.
+
+**Why this is done.** Cardinality helps distinguish identifiers, continuous variables and categorical fields, and can reveal unexpected duplicates or inconsistent coding.
+
+**Step-by-step.**
+
+1.  Apply `unique()` to each variable.
+2.  Count the number of distinct values returned.
+
+**Expected result.** A distinct-value count is produced for every field.
+
 ```{r}
-# Valores únicos
+# Unique values
 sapply(Affiliated_Outlets, function(x) length(unique(x)))
 ```
 
+#### Step 8 — Generate descriptive statistics for `Affiliated_Outlets`
+
+**Purpose.** Summarise the distribution and central characteristics of the dataset.
+
+**Why this is done.** Descriptive statistics provide a baseline understanding of typical values, dispersion and extreme observations before more advanced analysis.
+
+**Step-by-step.**
+
+1.  `summary()` reports common statistics and category information.
+2.  `describe()` provides additional distribution measures where appropriate.
+3.  `range()` identifies minimum and maximum values.
+4.  The most frequent value is extracted as the mode when relevant.
+
+**Expected result.** A statistical profile of the selected variables is produced.
+
 ```{r}
-# Estadísticas descriptivas
+# Descriptive statistics
 summary(Affiliated_Outlets)
 describe(Affiliated_Outlets)
-# Rango (mínimo y máximo)
+# Range (minimum and maximum)
 range(Affiliated_Outlets$Engage, na.rm = TRUE)
 range(Affiliated_Outlets$Management_Cluster, na.rm = TRUE)
-# Moda
+# Mode
 names(sort(table(Affiliated_Outlets$Engage), decreasing = TRUE))[1]
 names(sort(table(Affiliated_Outlets$Management_Cluster), decreasing = TRUE))[1]
 names(sort(table(Affiliated_Outlets$Tam_m2), decreasing = TRUE))[1]
 ```
 
+#### Step 9 — Analyse the distribution of `Engage`
+
+**Purpose.** Calculate both frequency counts and relative proportions for `Engage`.
+
+**Why this is done.** Absolute counts show the volume in each category, while proportions make categories easier to compare regardless of the dataset size.
+
+**Step-by-step.**
+
+1.  `table()` counts observations in each category.
+2.  `prop.table()` converts those counts into shares of the total.
+
+**Expected result.** The frequency and percentage distribution of `Engage` is displayed.
+
 ```{r}
-# Variables categóricas más relevantes
+# Most relevant categorical variables
 table(Affiliated_Outlets$Engage)
 prop.table(table(Affiliated_Outlets$Engage))
 ```
+
+#### Step 10 — Analyse the distribution of `Management_Cluster`
+
+**Purpose.** Calculate both frequency counts and relative proportions for `Management_Cluster`.
+
+**Why this is done.** Absolute counts show the volume in each category, while proportions make categories easier to compare regardless of the dataset size.
+
+**Step-by-step.**
+
+1.  `table()` counts observations in each category.
+2.  `prop.table()` converts those counts into shares of the total.
+
+**Expected result.** The frequency and percentage distribution of `Management_Cluster` is displayed.
 
 ```{r}
 table(Affiliated_Outlets$Management_Cluster)
 prop.table(table(Affiliated_Outlets$Management_Cluster))
 ```
 
+#### Step 11 — Analyse the distribution of `Location`
+
+**Purpose.** Calculate both frequency counts and relative proportions for `Location`.
+
+**Why this is done.** Absolute counts show the volume in each category, while proportions make categories easier to compare regardless of the dataset size.
+
+**Step-by-step.**
+
+1.  `table()` counts observations in each category.
+2.  `prop.table()` converts those counts into shares of the total.
+
+**Expected result.** The frequency and percentage distribution of `Location` is displayed.
+
 ```{r}
 table(Affiliated_Outlets$Location)
 prop.table(table(Affiliated_Outlets$Location))
 ```
+
+#### Step 12 — Analyse the distribution of `Tam_m2`
+
+**Purpose.** Calculate both frequency counts and relative proportions for `Tam_m2`.
+
+**Why this is done.** Absolute counts show the volume in each category, while proportions make categories easier to compare regardless of the dataset size.
+
+**Step-by-step.**
+
+1.  `table()` counts observations in each category.
+2.  `prop.table()` converts those counts into shares of the total.
+
+**Expected result.** The frequency and percentage distribution of `Tam_m2` is displayed.
 
 ```{r}
 table(Affiliated_Outlets$Tam_m2)
@@ -109,243 +284,724 @@ prop.table(table(Affiliated_Outlets$Tam_m2))
 
 ### - *DeliveryDay*
 
+#### Step 13 — Inspect the structure of `DeliveryDay`
+
+**Purpose.** Perform an initial inspection of the `DeliveryDay` dataset before any transformation or modelling.
+
+**Why this is done.** Understanding column names, data types, dimensions and sample values helps identify import problems and determines which preparation steps are required.
+
+**Step-by-step.**
+
+1.  `str()` shows the type and structure of every variable.
+2.  `head()` displays the first observations for a quick visual check.
+3.  `dim()` reports the number of rows and columns.
+4.  `names()` confirms the available field names.
+
+**Expected result.** A structural profile of the dataset is produced.
+
 ```{r}
-# Exploración básica
+# Basic exploration
 str(DeliveryDay)
 head(DeliveryDay)
 dim(DeliveryDay)
 names(DeliveryDay)
 ```
 
+#### Step 14 — Check missing values in `DeliveryDay`
+
+**Purpose.** Measure the number of `NA` values in each column of `DeliveryDay`.
+
+**Why this is done.** Missing values can affect summaries, joins, correlations and charts. Detecting them early prevents silent data loss or biased results.
+
+**Step-by-step.**
+
+1.  `is.na()` identifies every missing cell.
+2.  `colSums(is.na(...))` totals the missing observations by variable.
+
+**Expected result.** A column-level missing-value count is returned.
+
 ```{r}
-# Valores nulos
+# Null values
 is.na(DeliveryDay)
 colSums(is.na(DeliveryDay))
 ```
 
+#### Step 15 — Check empty strings in `DeliveryDay`
+
+**Purpose.** Detect blank text values that are not stored as formal `NA` values.
+
+**Why this is done.** CSV files often contain empty strings instead of true missing values. These blanks need to be identified because they may otherwise be treated as valid categories.
+
+**Step-by-step.**
+
+1.  Compare each value with an empty string.
+2.  Sum the matches by column.
+
+**Expected result.** The number of blank entries in each variable is displayed.
+
 ```{r}
-# Valores vacíos
+# Empty values
 colSums(DeliveryDay == "")
 ```
 
+#### Step 16 — Review variable cardinality in `DeliveryDay`
+
+**Purpose.** Count the number of distinct values in every column.
+
+**Why this is done.** Cardinality helps distinguish identifiers, continuous variables and categorical fields, and can reveal unexpected duplicates or inconsistent coding.
+
+**Step-by-step.**
+
+1.  Apply `unique()` to each variable.
+2.  Count the number of distinct values returned.
+
+**Expected result.** A distinct-value count is produced for every field.
+
 ```{r}
-# Valores únicos
+# Unique values
 sapply(DeliveryDay, function(x) length(unique(x)))
 ```
 
+#### Step 17 — Generate descriptive statistics for `DeliveryDay`
+
+**Purpose.** Summarise the distribution and central characteristics of the dataset. Particular attention is given to `Delivery_Uds`.
+
+**Why this is done.** Descriptive statistics provide a baseline understanding of typical values, dispersion and extreme observations before more advanced analysis.
+
+**Step-by-step.**
+
+1.  `summary()` reports common statistics and category information.
+2.  `describe()` provides additional distribution measures where appropriate.
+3.  `range()` identifies minimum and maximum values.
+4.  The most frequent value is extracted as the mode when relevant.
+
+**Expected result.** A statistical profile of the selected variables is produced.
+
 ```{r}
-# Estadísticas descriptivas
+# Descriptive statistics
 summary(DeliveryDay)
 summary(DeliveryDay$Delivery_Uds)
 describe(DeliveryDay$Delivery_Uds)
 
-# Rango
+# Range
 range(DeliveryDay$Delivery_Uds, na.rm = TRUE)
 
-# Moda
+# Mode
 names(sort(table(DeliveryDay$Delivery_Uds), decreasing = TRUE))[1]
 
 ```
 
 ### - *OoSDay*
 
+#### Step 18 — Inspect the structure of `OoSDay`
+
+**Purpose.** Perform an initial inspection of the `OoSDay` dataset before any transformation or modelling.
+
+**Why this is done.** Understanding column names, data types, dimensions and sample values helps identify import problems and determines which preparation steps are required.
+
+**Step-by-step.**
+
+1.  `str()` shows the type and structure of every variable.
+2.  `head()` displays the first observations for a quick visual check.
+3.  `dim()` reports the number of rows and columns.
+4.  `names()` confirms the available field names.
+
+**Expected result.** A structural profile of the dataset is produced.
+
 ```{r}
-# Exploración básica
+# Basic exploration
 str(OoSDay)
 head(OoSDay)
 dim(OoSDay)
 names(OoSDay)
 ```
 
+#### Step 19 — Check missing values in `OoSDay`
+
+**Purpose.** Measure the number of `NA` values in each column of `OoSDay`.
+
+**Why this is done.** Missing values can affect summaries, joins, correlations and charts. Detecting them early prevents silent data loss or biased results.
+
+**Step-by-step.**
+
+1.  `is.na()` identifies every missing cell.
+2.  `colSums(is.na(...))` totals the missing observations by variable.
+
+**Expected result.** A column-level missing-value count is returned.
+
 ```{r}
-# Valores nulos
+# Null values
 is.na(OoSDay)
 colSums(is.na(OoSDay))
 ```
 
+#### Step 20 — Check empty strings in `OoSDay`
+
+**Purpose.** Detect blank text values that are not stored as formal `NA` values.
+
+**Why this is done.** CSV files often contain empty strings instead of true missing values. These blanks need to be identified because they may otherwise be treated as valid categories.
+
+**Step-by-step.**
+
+1.  Compare each value with an empty string.
+2.  Sum the matches by column.
+
+**Expected result.** The number of blank entries in each variable is displayed.
+
 ```{r}
-# Valores vacíos
+# Empty values
 colSums(OoSDay == "")
 ```
 
+#### Step 21 — Review variable cardinality in `OoSDay`
+
+**Purpose.** Count the number of distinct values in every column.
+
+**Why this is done.** Cardinality helps distinguish identifiers, continuous variables and categorical fields, and can reveal unexpected duplicates or inconsistent coding.
+
+**Step-by-step.**
+
+1.  Apply `unique()` to each variable.
+2.  Count the number of distinct values returned.
+
+**Expected result.** A distinct-value count is produced for every field.
+
 ```{r}
-# Valores únicos
+# Unique values
 sapply(OoSDay, function(x) length(unique(x)))
 ```
 
+#### Step 22 — Generate descriptive statistics for `OoSDay`
+
+**Purpose.** Summarise the distribution and central characteristics of the dataset.
+
+**Why this is done.** Descriptive statistics provide a baseline understanding of typical values, dispersion and extreme observations before more advanced analysis.
+
+**Step-by-step.**
+
+1.  `summary()` reports common statistics and category information.
+2.  `describe()` provides additional distribution measures where appropriate.
+3.  `range()` identifies minimum and maximum values.
+4.  The most frequent value is extracted as the mode when relevant.
+
+**Expected result.** A statistical profile of the selected variables is produced.
+
 ```{r}
-# Estadísticas descriptivas
+# Descriptive statistics
 summary(OoSDay)
 ```
 
 ### - *Postal_Codes*
 
+#### Step 23 — Inspect the structure of `Postal_Codes`
+
+**Purpose.** Perform an initial inspection of the `Postal_Codes` dataset before any transformation or modelling.
+
+**Why this is done.** Understanding column names, data types, dimensions and sample values helps identify import problems and determines which preparation steps are required.
+
+**Step-by-step.**
+
+1.  `str()` shows the type and structure of every variable.
+2.  `head()` displays the first observations for a quick visual check.
+3.  `dim()` reports the number of rows and columns.
+4.  `names()` confirms the available field names.
+
+**Expected result.** A structural profile of the dataset is produced.
+
 ```{r}
-# Exploración básica
+# Basic exploration
 str(Postal_Codes)
 head(Postal_Codes)
 dim(Postal_Codes)
 names(Postal_Codes)
 ```
 
+#### Step 24 — Check postal-code variable types
+
+**Purpose.** Confirm how each field in the postal-code reference table was imported.
+
+**Why this is done.** Postal codes and geographic identifiers often lose leading zeros when imported as numbers. Reviewing data types helps prevent incorrect joins.
+
+**Step-by-step.**
+
+1.  Apply `class()` to every column.
+2.  Review whether identifiers are stored as text or numeric values.
+
+**Expected result.** The imported class of each postal-code variable is returned.
+
 ```{r}
-# Tipos de variables
+# Variable types
 sapply(Postal_Codes, class)
 ```
 
+#### Step 25 — Check missing values in `Postal_Codes`
+
+**Purpose.** Measure the number of `NA` values in each column of `Postal_Codes`.
+
+**Why this is done.** Missing values can affect summaries, joins, correlations and charts. Detecting them early prevents silent data loss or biased results.
+
+**Step-by-step.**
+
+1.  `is.na()` identifies every missing cell.
+2.  `colSums(is.na(...))` totals the missing observations by variable.
+
+**Expected result.** A column-level missing-value count is returned.
+
 ```{r}
-# Valores nulos
+# Null values
 is.na(Postal_Codes)
 colSums(is.na(Postal_Codes))
 ```
 
+#### Step 26 — Check empty strings in `Postal_Codes`
+
+**Purpose.** Detect blank text values that are not stored as formal `NA` values.
+
+**Why this is done.** CSV files often contain empty strings instead of true missing values. These blanks need to be identified because they may otherwise be treated as valid categories.
+
+**Step-by-step.**
+
+1.  Compare each value with an empty string.
+2.  Sum the matches by column.
+
+**Expected result.** The number of blank entries in each variable is displayed.
+
 ```{r}
-# Valores vacíos
+# Empty values
 colSums(Postal_Codes == "")
 ```
 
+#### Step 27 — Review variable cardinality in `Postal_Codes`
+
+**Purpose.** Count the number of distinct values in every column.
+
+**Why this is done.** Cardinality helps distinguish identifiers, continuous variables and categorical fields, and can reveal unexpected duplicates or inconsistent coding.
+
+**Step-by-step.**
+
+1.  Apply `unique()` to each variable.
+2.  Count the number of distinct values returned.
+
+**Expected result.** A distinct-value count is produced for every field.
+
 ```{r}
-# Valores únicos
+# Unique values
 sapply(Postal_Codes, function(x) length(unique(x)))
 ```
 
+#### Step 28 — Generate descriptive statistics for `Postal_Codes`
+
+**Purpose.** Summarise the distribution and central characteristics of the dataset.
+
+**Why this is done.** Descriptive statistics provide a baseline understanding of typical values, dispersion and extreme observations before more advanced analysis.
+
+**Step-by-step.**
+
+1.  `summary()` reports common statistics and category information.
+2.  `describe()` provides additional distribution measures where appropriate.
+3.  `range()` identifies minimum and maximum values.
+4.  The most frequent value is extracted as the mode when relevant.
+
+**Expected result.** A statistical profile of the selected variables is produced.
+
 ```{r}
-# Estadísticas descriptivas
+# Descriptive statistics
 summary(Postal_Codes)
 ```
 
+#### Step 29 — Inspect postal-code values
+
+**Purpose.** Review the first values in the first postal-code column.
+
+**Why this is done.** A direct inspection helps verify formatting, leading zeros and general consistency before the table is used for geographic joins.
+
+**Step-by-step.**
+
+1.  Select the first column.
+2.  Display the first 20 observations.
+
+**Expected result.** A sample of postal-code values is shown.
+
 ```{r}
-# Inspección de valores
+# Value inspection
 head(Postal_Codes[,1], 20)
 ```
 
 ### - *Product*
 
+#### Step 30 — Inspect the structure of `Product`
+
+**Purpose.** Perform an initial inspection of the `Product` dataset before any transformation or modelling.
+
+**Why this is done.** Understanding column names, data types, dimensions and sample values helps identify import problems and determines which preparation steps are required.
+
+**Step-by-step.**
+
+1.  `str()` shows the type and structure of every variable.
+2.  `head()` displays the first observations for a quick visual check.
+3.  `dim()` reports the number of rows and columns.
+4.  `names()` confirms the available field names.
+
+**Expected result.** A structural profile of the dataset is produced.
+
 ```{r}
-# Exploración básica
+# Basic exploration
 str(Product)
 head(Product)
 dim(Product)
 names(Product)
 ```
 
+#### Step 31 — Check missing values in `Product`
+
+**Purpose.** Measure the number of `NA` values in each column of `Product`.
+
+**Why this is done.** Missing values can affect summaries, joins, correlations and charts. Detecting them early prevents silent data loss or biased results.
+
+**Step-by-step.**
+
+1.  `is.na()` identifies every missing cell.
+2.  `colSums(is.na(...))` totals the missing observations by variable.
+
+**Expected result.** A column-level missing-value count is returned.
+
 ```{r}
-# Valores nulos
+# Null values
 is.na(Product)
 colSums(is.na(Product))
 ```
 
+#### Step 32 — Check empty strings in `Product`
+
+**Purpose.** Detect blank text values that are not stored as formal `NA` values.
+
+**Why this is done.** CSV files often contain empty strings instead of true missing values. These blanks need to be identified because they may otherwise be treated as valid categories.
+
+**Step-by-step.**
+
+1.  Compare each value with an empty string.
+2.  Sum the matches by column.
+
+**Expected result.** The number of blank entries in each variable is displayed.
+
 ```{r}
-# Valores vacíos
+# Empty values
 colSums(Product == "")
 ```
 
+#### Step 33 — Review variable cardinality in `Product`
+
+**Purpose.** Count the number of distinct values in every column.
+
+**Why this is done.** Cardinality helps distinguish identifiers, continuous variables and categorical fields, and can reveal unexpected duplicates or inconsistent coding.
+
+**Step-by-step.**
+
+1.  Apply `unique()` to each variable.
+2.  Count the number of distinct values returned.
+
+**Expected result.** A distinct-value count is produced for every field.
+
 ```{r}
-# Valores únicos
+# Unique values
 sapply(Product, function(x) length(unique(x)))
 ```
 
+#### Step 34 — Generate descriptive statistics for `Product`
+
+**Purpose.** Summarise the distribution and central characteristics of the dataset. Particular attention is given to product size.
+
+**Why this is done.** Descriptive statistics provide a baseline understanding of typical values, dispersion and extreme observations before more advanced analysis.
+
+**Step-by-step.**
+
+1.  `summary()` reports common statistics and category information.
+2.  `describe()` provides additional distribution measures where appropriate.
+3.  `range()` identifies minimum and maximum values.
+4.  The most frequent value is extracted as the mode when relevant.
+
+**Expected result.** A statistical profile of the selected variables is produced.
+
 ```{r}
-# Estadísticas descriptivas
+# Descriptive statistics
 summary(Product)
 describe(Product$SIZE)
 
-# Rango
+# Range
 range(Product$SIZE, na.rm = TRUE)
 
-# Moda
+# Mode
 names(sort(table(Product$SIZE), decreasing = TRUE))[1]
 ```
 
+#### Step 35 — Analyse the distribution of `Format`
+
+**Purpose.** Calculate both frequency counts and relative proportions for `Format`.
+
+**Why this is done.** Absolute counts show the volume in each category, while proportions make categories easier to compare regardless of the dataset size.
+
+**Step-by-step.**
+
+1.  `table()` counts observations in each category.
+2.  `prop.table()` converts those counts into shares of the total.
+
+**Expected result.** The frequency and percentage distribution of `Format` is displayed.
+
 ```{r}
-# Variables categóricas más relevantes
+# Most relevant categorical variables
 table(Product$Format)
 prop.table(table(Product$Format))
 ```
 
 ### - *RouteDay*
 
+#### Step 36 — Inspect the structure of `RouteDay`
+
+**Purpose.** Perform an initial inspection of the `RouteDay` dataset before any transformation or modelling.
+
+**Why this is done.** Understanding column names, data types, dimensions and sample values helps identify import problems and determines which preparation steps are required.
+
+**Step-by-step.**
+
+1.  `str()` shows the type and structure of every variable.
+2.  `head()` displays the first observations for a quick visual check.
+3.  `dim()` reports the number of rows and columns.
+4.  `names()` confirms the available field names.
+
+**Expected result.** A structural profile of the dataset is produced.
+
 ```{r}
-# Exploración básica
+# Basic exploration
 str(RouteDay)
 head(RouteDay)
 dim(RouteDay)
 names(RouteDay)
 ```
 
+#### Step 37 — Check missing values in `RouteDay`
+
+**Purpose.** Measure the number of `NA` values in each column of `RouteDay`.
+
+**Why this is done.** Missing values can affect summaries, joins, correlations and charts. Detecting them early prevents silent data loss or biased results.
+
+**Step-by-step.**
+
+1.  `is.na()` identifies every missing cell.
+2.  `colSums(is.na(...))` totals the missing observations by variable.
+
+**Expected result.** A column-level missing-value count is returned.
+
 ```{r}
-# Valores nulos
+# Null values
 is.na(RouteDay)
 colSums(is.na(RouteDay))
 ```
 
+#### Step 38 — Check empty strings in `RouteDay`
+
+**Purpose.** Detect blank text values that are not stored as formal `NA` values.
+
+**Why this is done.** CSV files often contain empty strings instead of true missing values. These blanks need to be identified because they may otherwise be treated as valid categories.
+
+**Step-by-step.**
+
+1.  Compare each value with an empty string.
+2.  Sum the matches by column.
+
+**Expected result.** The number of blank entries in each variable is displayed.
+
 ```{r}
-# Valores vacíos
+# Empty values
 colSums(RouteDay == "")
 ```
 
+#### Step 39 — Review variable cardinality in `RouteDay`
+
+**Purpose.** Count the number of distinct values in every column.
+
+**Why this is done.** Cardinality helps distinguish identifiers, continuous variables and categorical fields, and can reveal unexpected duplicates or inconsistent coding.
+
+**Step-by-step.**
+
+1.  Apply `unique()` to each variable.
+2.  Count the number of distinct values returned.
+
+**Expected result.** A distinct-value count is produced for every field.
+
 ```{r}
-# Valores únicos
+# Unique values
 sapply(RouteDay, function(x) length(unique(x)))
 ```
 
+#### Step 40 — Repeat the RouteDay cardinality check
+
+**Purpose.** Reconfirm the number of unique values in each `RouteDay` field.
+
+**Why this is done.** This duplicate exploratory check was retained from the development process. It provides the same validation as the previous block and can be used to confirm that the dataset was not changed between steps.
+
+**Step-by-step.**
+
+1.  Apply `unique()` to each variable.
+2.  Count the distinct values.
+
+**Expected result.** A repeated distinct-value count is returned.
+
 ```{r}
-# Valores únicos
+# Unique values
 sapply(RouteDay, function(x) length(unique(x)))
 ```
 
+#### Step 41 — Generate descriptive statistics for `RouteDay`
+
+**Purpose.** Summarise the distribution and central characteristics of the dataset.
+
+**Why this is done.** Descriptive statistics provide a baseline understanding of typical values, dispersion and extreme observations before more advanced analysis.
+
+**Step-by-step.**
+
+1.  `summary()` reports common statistics and category information.
+2.  `describe()` provides additional distribution measures where appropriate.
+3.  `range()` identifies minimum and maximum values.
+4.  The most frequent value is extracted as the mode when relevant.
+
+**Expected result.** A statistical profile of the selected variables is produced.
+
 ```{r}
-# Estadísticas descriptivas
+# Descriptive statistics
 summary(RouteDay)
 ```
 
 ### - *SalesDay*
 
+#### Step 42 — Inspect the structure of `SalesDay`
+
+**Purpose.** Perform an initial inspection of the `SalesDay` dataset before any transformation or modelling.
+
+**Why this is done.** Understanding column names, data types, dimensions and sample values helps identify import problems and determines which preparation steps are required.
+
+**Step-by-step.**
+
+1.  `str()` shows the type and structure of every variable.
+2.  `head()` displays the first observations for a quick visual check.
+3.  `dim()` reports the number of rows and columns.
+4.  `names()` confirms the available field names.
+
+**Expected result.** A structural profile of the dataset is produced.
+
 ```{r}
-# Exploración básica
+# Basic exploration
 str(SalesDay)
 head(SalesDay)
 dim(SalesDay)
 names(SalesDay)
 ```
 
+#### Step 43 — Check missing values in `SalesDay`
+
+**Purpose.** Measure the number of `NA` values in each column of `SalesDay`.
+
+**Why this is done.** Missing values can affect summaries, joins, correlations and charts. Detecting them early prevents silent data loss or biased results.
+
+**Step-by-step.**
+
+1.  `is.na()` identifies every missing cell.
+2.  `colSums(is.na(...))` totals the missing observations by variable.
+
+**Expected result.** A column-level missing-value count is returned.
+
 ```{r}
-# Valores nulos
+# Null values
 is.na(SalesDay)
 colSums(is.na(SalesDay))
 ```
 
+#### Step 44 — Check empty strings in `SalesDay`
+
+**Purpose.** Detect blank text values that are not stored as formal `NA` values.
+
+**Why this is done.** CSV files often contain empty strings instead of true missing values. These blanks need to be identified because they may otherwise be treated as valid categories.
+
+**Step-by-step.**
+
+1.  Compare each value with an empty string.
+2.  Sum the matches by column.
+
+**Expected result.** The number of blank entries in each variable is displayed.
+
 ```{r}
-# Valores vacíos
+# Empty values
 colSums(SalesDay == "")
 ```
 
+#### Step 45 — Review variable cardinality in `SalesDay`
+
+**Purpose.** Count the number of distinct values in every column.
+
+**Why this is done.** Cardinality helps distinguish identifiers, continuous variables and categorical fields, and can reveal unexpected duplicates or inconsistent coding.
+
+**Step-by-step.**
+
+1.  Apply `unique()` to each variable.
+2.  Count the number of distinct values returned.
+
+**Expected result.** A distinct-value count is produced for every field.
+
 ```{r}
-# Valores únicos
+# Unique values
 sapply(SalesDay, function(x) length(unique(x)))
 ```
 
+#### Step 46 — Generate descriptive statistics for `SalesDay`
+
+**Purpose.** Summarise the distribution and central characteristics of the dataset. Particular attention is given to `Sales_Uds`.
+
+**Why this is done.** Descriptive statistics provide a baseline understanding of typical values, dispersion and extreme observations before more advanced analysis.
+
+**Step-by-step.**
+
+1.  `summary()` reports common statistics and category information.
+2.  `describe()` provides additional distribution measures where appropriate.
+3.  `range()` identifies minimum and maximum values.
+4.  The most frequent value is extracted as the mode when relevant.
+
+**Expected result.** A statistical profile of the selected variables is produced.
+
 ```{r}
-# Estadísticas descriptivas
+# Descriptive statistics
 summary(SalesDay)
 summary(SalesDay$Sales_Uds)
 describe(SalesDay$Sales_Uds)
 
-# Rango
+# Range
 range(SalesDay$Sales_Uds, na.rm = TRUE)
 
-# Moda
+# Mode
 names(sort(table(SalesDay$Sales_Uds), decreasing = TRUE))[1]
 ```
 
 # CORRELATION OF VARIABLES
 
+#### Step 47 — Calculate the relationship between daily deliveries and sales
+
+**Purpose.** Create comparable daily sales and delivery totals and calculate their Pearson correlation.
+
+**Why this is done.** Sales and deliveries are stored in separate transactional tables. They must be aggregated to the same daily level before their relationship can be measured.
+
+**Step-by-step.**
+
+1.  Exclude negative unit values so that adjustments or reversals do not distort positive operational activity.
+2.  Aggregate sales and deliveries by date.
+3.  Rename the delivery date field so both tables use the same join key.
+4.  Join both daily summaries and calculate Pearson's correlation using complete observations.
+
+**Expected result.** A correlation coefficient is returned, indicating the direction and strength of the linear association.
+
 ```{r}
-# Carga de librerias
+# Load libraries
 library(dplyr)
 library(ggplot2)
 
-# Agregar ventas por día (Excluyendo valores negativos)
+# Aggregate sales by day (excluding negative values)
 sales_day <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   group_by(Sales_DAY) %>%
@@ -354,7 +1010,7 @@ sales_day <- SalesDay %>%
     .groups = "drop"
   )
 
-# Agregar entregas por día (Excluyendo valores negativos)
+# Aggregate deliveries by day (excluding negative values)
 delivery_day <- DeliveryDay %>%
   filter(Delivery_Uds >= 0) %>%
   group_by(Delivery_DAY) %>%
@@ -364,10 +1020,10 @@ delivery_day <- DeliveryDay %>%
   ) %>%
   rename(Sales_DAY = Delivery_DAY)
 
-# Unir datasets
+# Join datasets
 data_corr <- left_join(sales_day, delivery_day, by = "Sales_DAY")
 
-# Correlación
+# Correlation
 correlacion <- cor(
   data_corr$Sales,
   data_corr$Delivery,
@@ -378,24 +1034,54 @@ correlacion <- cor(
 correlacion
 ```
 
+#### Step 48 — Visualise the delivery–sales relationship
+
+**Purpose.** Display the daily delivery and sales totals in a scatter plot with a fitted linear trend.
+
+**Why this is done.** A correlation coefficient summarises the relationship in one number, but a chart reveals dispersion, unusual observations and whether a linear pattern is plausible.
+
+**Step-by-step.**
+
+1.  Plot delivered units on the horizontal axis and units sold on the vertical axis.
+2.  Use semi-transparent points to reduce overplotting.
+3.  Add a linear regression line as a visual reference.
+
+**Expected result.** A scatter plot is produced to support interpretation of the calculated correlation.
+
 ```{r}
-# Visualización de la relación
+# Visualise the relationship
 ggplot(data_corr, aes(x = Delivery, y = Sales)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm", color = "red") +
   labs(
-    title = "Relación entre unidades entregadas y vendidas",
-    x = "Unidades entregadas",
-    y = "Unidades vendidas"
+    title = "Relationship between delivered and sold units",
+    x = "Delivered units",
+    y = "Units sold"
   ) +
   theme_minimal()
 ```
+
+#### Step 49 — Measure the relationship between out-of-stock incidents and sales
+
+**Purpose.** Compare daily sales with the daily number of out-of-stock incidents.
+
+**Why this is done.** This analysis tests whether days with more availability problems are associated with changes in sales volume.
+
+**Step-by-step.**
+
+1.  Aggregate non-negative sales by day.
+2.  Count out-of-stock records by day.
+3.  Join both datasets using the sales date.
+4.  Replace missing incident counts with zero because no matching record represents a day without registered incidents.
+5.  Calculate Pearson's correlation and visualise the relationship with a scatter plot and linear trend.
+
+**Expected result.** The block returns a correlation coefficient and a supporting visualisation.
 
 ```{r}
 library(dplyr)
 library(ggplot2)
 
-# 1. Ventas por día (sin negativos)
+# 1. Sales by day (excluding negative values)
 sales_day <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   group_by(Sales_DAY) %>%
@@ -404,7 +1090,7 @@ sales_day <- SalesDay %>%
     .groups = "drop"
   )
 
-# 2. OoS por día (conteo de incidencias)
+# 2. OoS by day (incident count)
 oos_day <- OoSDay %>%
   group_by(OoS_DAY) %>%
   summarise(
@@ -413,13 +1099,13 @@ oos_day <- OoSDay %>%
   ) %>%
   rename(Sales_DAY = OoS_DAY)
 
-# 3. Unir datasets
+# 3. Join datasets
 data_oos <- left_join(sales_day, oos_day, by = "Sales_DAY")
 
-# Reemplazar NA por 0 (días sin OoS)
+# Replace NA with 0 (days without OoS incidents)
 data_oos$OoS[is.na(data_oos$OoS)] <- 0
 
-# 4. Calcular correlación
+# 4. Calculate correlation
 correlacion_oos <- cor(
   data_oos$Sales,
   data_oos$OoS,
@@ -429,19 +1115,37 @@ correlacion_oos <- cor(
 
 correlacion_oos
 
-# 5. Visualización
+# 5. Visualisation
 ggplot(data_oos, aes(x = OoS, y = Sales)) +
   geom_point(alpha = 0.5) +
   geom_smooth(method = "lm", color = "red") +
   labs(
-    title = "Relación entre roturas de stock y ventas",
-    x = "Número de incidencias OoS",
-    y = "Unidades vendidas"
+    title = "Relationship between out-of-stock incidents and sales",
+    x = "Number of OoS incidents",
+    y = "Units sold"
   ) +
   theme_minimal()
 ```
 
 # VISUALIZATION
+
+#### Step 50 — Create an initial provincial sales heatmap
+
+**Purpose.** Aggregate sales by province and display their geographic distribution across Spain.
+
+**Why this is done.** A geographic view makes regional concentration easier to identify than a conventional table and supports comparisons between provinces.
+
+**Step-by-step.**
+
+1.  Count negative sales records and retain non-negative values for the geographic total.
+2.  Aggregate sales by affiliated outlet.
+3.  Attach each outlet's postal code and extract the first two digits as the province code.
+4.  Map province codes to province names.
+5.  Aggregate units sold by province.
+6.  Download NUTS level 3 Spanish boundaries, standardise names and join the sales totals.
+7.  Draw a choropleth map in which colour intensity represents units sold.
+
+**Expected result.** An exploratory heatmap of provincial sales is produced.
 
 ```{r}
 library(dplyr)
@@ -453,11 +1157,11 @@ library(giscoR)
 install.packages("stringi")
 library(stringi)
 
-# Cantidad de ventas negativas (sales)
+# Number of negative sales records
 
 sum(SalesDay$Sales_Uds < 0, na.rm = TRUE)
 
-# 1. Ventas por establecimiento
+# 1. Sales by outlet
 
 
 sales_affiliated <- SalesDay %>%
@@ -468,21 +1172,21 @@ sales_affiliated <- SalesDay %>%
     .groups = "drop"
   )
 
-# 2. Unir ventas con Affiliated_Outlets para obtener código postal
+# 2. Join sales with Affiliated_Outlets to obtain the postal code
 sales_postal <- sales_affiliated %>%
   left_join(
     Affiliated_Outlets %>% select(Affiliated_Code, POSTALCODE),
     by = "Affiliated_Code"
   )
 
-# 3. Extraer provincia desde el código postal
+# 3. Extract province from the postal code
 sales_postal <- sales_postal %>%
   mutate(
     POSTALCODE = sprintf("%05d", as.numeric(POSTALCODE)),
     Provincia_Code = substr(POSTALCODE, 1, 2)
   )
 
-# 4. Tabla de provincias
+# 4. Province lookup table
 prov_map <- data.frame(
   Provincia_Code = c("01","02","03","04","05","06","07","08","09","10",
                      "11","12","13","14","15","16","17","18","19","20",
@@ -502,7 +1206,7 @@ prov_map <- data.frame(
                 "Ceuta","Melilla")
 )
 
-# 5. Ventas por provincia
+# 5. Sales by province
 sales_prov <- sales_postal %>%
   left_join(prov_map, by = "Provincia_Code") %>%
   group_by(provincia) %>%
@@ -511,28 +1215,28 @@ sales_prov <- sales_postal %>%
     .groups = "drop"
   )
 
-# 6. Descargar mapa de provincias de España
+# 6. Download the map of Spanish provinces
 spain_prov <- gisco_get_nuts(
   country = "ES",
   nuts_level = 3,
   resolution = "20"
 )
 
-# 7. Normalizar nombres para unir correctamente
+# 7. Standardise names to ensure a correct join
 sales_prov <- sales_prov %>%
   mutate(prov_clean = stri_trans_general(toupper(provincia), "Latin-ASCII"))
 
 spain_prov <- spain_prov %>%
   mutate(prov_clean = stri_trans_general(toupper(NAME_LATN), "Latin-ASCII"))
 
-# 8. Unir mapa con ventas
+# 8. Join the map with sales data
 map_sales <- spain_prov %>%
   left_join(sales_prov, by = "prov_clean")
 
 install.packages("scales")
 library(scales)
 
-# 9. Mapa de calor
+# 9. Heatmap
 ggplot(map_sales) +
   geom_sf(aes(fill = Total_Sales_Uds), color = "white", size = 0.2) +
   scale_fill_gradient(
@@ -545,31 +1249,46 @@ ggplot(map_sales) +
     )
   ) +
   labs(
-    title = "Mapa de calor de unidades vendidas por provincia",
-    fill = "Unidades vendidas"
+    title = "Heatmap of units sold by province",
+    fill = "Units sold"
   ) +
   theme_minimal()
 ```
 
+#### Step 51 — Visualise outlet-location categories
+
+**Purpose.** Show how affiliated outlets are distributed across the available `Location` categories.
+
+**Why this is done.** The chart provides an immediate view of which location types dominate the outlet network.
+
+**Step-by-step.**
+
+1.  Create a frequency table and sort categories from highest to lowest.
+2.  Increase the lower plot margin so long labels remain readable.
+3.  Draw a bar chart.
+4.  Add each category's percentage above its bar.
+
+**Expected result.** A ranked bar chart with percentage labels is produced.
+
 ```{r}
-# Tabla de frecuencias ordenada
+# Sorted frequency table
 loc <- table(Affiliated_Outlets$Location)
 loc <- sort(loc, decreasing = TRUE)
 
-# Ajustar márgenes (MUY IMPORTANTE)
-par(mar = c(9,4,4,2))  # abajo, izquierda, arriba, derecha
+# Adjust margins (VERY IMPORTANT)
+par(mar = c(9,4,4,2))  # bottom, left, top, right
 
-# Crear gráfico
+# Create chart
 bp <- barplot(loc,
-              main = "Distribución de Location",
+              main = "Location distribution",
               col = "steelblue",
               border = NA,
               las = 2,
               cex.names = 0.9,
               space = 0.6,
-              ylim = c(0, max(loc)*1.2))  # deja espacio arriba
+              ylim = c(0, max(loc)*1.2))  # leave space at the top
 
-# Añadir porcentajes bien posicionados
+# Add correctly positioned percentages
 text(x = bp,
      y = loc,
      labels = paste0(round(prop.table(loc)*100,1), "%"),
@@ -577,19 +1296,34 @@ text(x = bp,
      cex = 0.9)
 ```
 
+#### Step 52 — Create the first outlet-size distribution chart
+
+**Purpose.** Display the frequency of each store-size category.
+
+**Why this is done.** Outlet size is an important segmentation variable. Reviewing its distribution also reveals how common the unknown `N.D.` category is.
+
+**Step-by-step.**
+
+1.  Count outlets in each `Tam_m2` category.
+2.  Sort categories by frequency.
+3.  Adjust the margins for rotated labels.
+4.  Create the bar chart.
+
+**Expected result.** An exploratory store-size frequency chart is generated.
+
 ```{r}
-# Crear tabla de frecuencias
+# Create frequency table
 tam <- table(Affiliated_Outlets$Tam_m2)
 
-# Ordenar de mayor a menor
+# Sort from highest to lowest
 tam <- sort(tam, decreasing = TRUE)
 
-# Ajustar márgenes
+# Adjust margins
 par(mar = c(9,4,4,2))
 
-# Crear gráfico
+# Create chart
 barplot(tam,
-        main = "Distribución de Tam_m2",
+        main = "Store size distribution",
         col = "steelblue",
         border = NA,
         las = 2,
@@ -601,25 +1335,41 @@ barplot(tam,
 
 ```
 
+#### Step 53 — Analyse deliveries by month
+
+**Purpose.** Transform delivery dates into month numbers and plot the number of delivery records across the calendar year.
+
+**Why this is done.** Monthly aggregation reveals seasonality, gaps and periods with unusually high or low delivery activity.
+
+**Step-by-step.**
+
+1.  Convert the delivery field to a date.
+2.  Extract the month number.
+3.  Count delivery records by month.
+4.  Create a complete 12-month structure so months with no records are still displayed.
+5.  Assign English month names and draw a line chart.
+
+**Expected result.** A January-to-December delivery trend is produced.
+
 ```{r}
-# Convertir fecha
+# Convert date
 DeliveryDay$Delivery_DAY <- as.Date(DeliveryDay$Delivery_DAY)
 
-# Crear número de mes
+# Create month number
 DeliveryDay$Mes_num <- as.numeric(format(DeliveryDay$Delivery_DAY, "%m"))
 
-# Contar número de entregas por mes
+# Count deliveries by month
 entregas_mes <- table(DeliveryDay$Mes_num)
 
-# Asegurar que aparezcan todos los meses, aunque tengan 0
+# Ensure all months are shown, including those with zero records
 entregas_mes_completo <- rep(0, 12)
 entregas_mes_completo[as.numeric(names(entregas_mes))] <- as.numeric(entregas_mes)
 
-# Nombres de meses
-meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
-           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+# Month names
+meses <- c("January","February","March","April","May","June",
+           "July","August","September","October","November","December")
 
-# Gráfico de línea temporal
+# Time-series line chart
 par(mar = c(8,4,4,2))
 
 plot(entregas_mes_completo,
@@ -630,28 +1380,43 @@ plot(entregas_mes_completo,
      xaxt = "n",
      xlab = "",
      ylab = "",
-     main = "Distribución mensual de entregas",
+     main = "Monthly delivery distribution",
      ylim = c(0, max(entregas_mes_completo) * 1.2))
 
 axis(1, at = 1:12, labels = meses, las = 2)
 ```
 
+#### Step 54 — Visualise the management-cluster distribution
+
+**Purpose.** Show the number and percentage of outlets assigned to each existing management cluster.
+
+**Why this is done.** This establishes the baseline composition of the predefined business segmentation before comparing cluster performance.
+
+**Step-by-step.**
+
+1.  Count outlets by `Management_Cluster`.
+2.  Sort the counts from highest to lowest.
+3.  Format the labels and chart margins.
+4.  Draw a bar chart and add percentage labels.
+
+**Expected result.** A percentage-labelled cluster distribution chart is produced.
+
 ```{r}
-# Crear tabla de frecuencias
+# Create frequency table
 mc <- table(Affiliated_Outlets$Management_Cluster)
 
-# Ordenar de mayor a menor
+# Sort from highest to lowest
 mc <- sort(mc, decreasing = TRUE)
 
-# Asegurar que las etiquetas sean solo números
+# Ensure labels contain numbers only
 names(mc) <- as.character(names(mc))
 
-# Ajustar márgenes
+# Adjust margins
 par(mar = c(7,4,4,2))
 
-# Crear gráfico
+# Create chart
 bp <- barplot(mc,
-              main = "Distribución de Management Cluster",
+              main = "Management Cluster distribution",
               col = "steelblue",
               border = NA,
               las = 2,
@@ -661,7 +1426,7 @@ bp <- barplot(mc,
               xlab = "Clusters",
               ylab = "")
 
-# Añadir porcentajes
+# Add percentages
 text(x = bp,
      y = mc,
      labels = paste0(round(prop.table(mc)*100,1), "%"),
@@ -669,22 +1434,37 @@ text(x = bp,
      cex = 0.9)
 ```
 
+#### Step 55 — Visualise the engagement distribution
+
+**Purpose.** Show how outlets are distributed across the `Engage` levels.
+
+**Why this is done.** The chart helps determine whether engagement scores are balanced or concentrated in a small number of levels.
+
+**Step-by-step.**
+
+1.  Count observations by engagement level.
+2.  Sort the levels by frequency.
+3.  Create a bar chart.
+4.  Add percentages above the bars.
+
+**Expected result.** A ranked engagement distribution chart is produced.
+
 ```{r}
-# Crear tabla de frecuencias
+# Create frequency table
 eng <- table(Affiliated_Outlets$Engage)
 
-# Ordenar de mayor a menor
+# Sort from highest to lowest
 eng <- sort(eng, decreasing = TRUE)
 
-# Asegurar etiquetas como números
+# Ensure labels are numeric
 names(eng) <- as.character(names(eng))
 
-# Ajustar márgenes
+# Adjust margins
 par(mar = c(7,4,4,2))
 
-# Crear gráfico
+# Create chart
 bp <- barplot(eng,
-              main = "Distribución de Engage",
+              main = "Engagement distribution",
               col = "steelblue",
               border = NA,
               las = 2,
@@ -692,9 +1472,9 @@ bp <- barplot(eng,
               space = 0.6,
               ylim = c(0, max(eng)*1.2),
               xlab = "Engage",
-              ylab = "")   # quitamos "Frecuencia"
+              ylab = "")   # remove "Frequency"
 
-# Añadir porcentajes encima de cada barra
+# Add percentages above each bar
 text(x = bp,
      y = eng,
      labels = paste0(round(prop.table(eng)*100,1), "%"),
@@ -702,19 +1482,34 @@ text(x = bp,
      cex = 0.9)
 ```
 
+#### Step 56 — Refine the outlet-size distribution chart
+
+**Purpose.** Create a store-size chart that includes percentage labels.
+
+**Why this is done.** Percentages make the relative importance of each size category easier to interpret than counts alone.
+
+**Step-by-step.**
+
+1.  Count and sort store-size categories.
+2.  Adjust margins to accommodate labels.
+3.  Draw the bars.
+4.  Calculate and display each category's percentage.
+
+**Expected result.** A refined store-size chart with percentages is generated.
+
 ```{r}
-# Crear tabla de frecuencias
+# Create frequency table
 tam <- table(Affiliated_Outlets$Tam_m2)
 
-# Ordenar de mayor a menor
+# Sort from highest to lowest
 tam <- sort(tam, decreasing = TRUE)
 
-# Ajustar márgenes
+# Adjust margins
 par(mar = c(9,4,4,2))
 
-# Crear gráfico
+# Create chart
 bp <- barplot(tam,
-              main = "Distribución de Tam_m2",
+              main = "Store size distribution",
               col = "steelblue",
               border = NA,
               las = 2,
@@ -724,13 +1519,28 @@ bp <- barplot(tam,
               xlab = "",
               ylab = "")
 
-# Añadir porcentajes
+# Add percentages
 text(x = bp,
      y = tam,
      labels = paste0(round(prop.table(tam)*100,1), "%"),
      pos = 3,
      cex = 0.9)
 ```
+
+#### Step 57 — Summarise the product-code mix
+
+**Purpose.** Display the contribution of frequently sold product codes while grouping very small categories into `OTHER`.
+
+**Why this is done.** A pie chart becomes unreadable when it contains many small slices. The 3% threshold keeps the main products visible without discarding the remaining volume.
+
+**Step-by-step.**
+
+1.  Count sales records by product code and calculate proportions.
+2.  Retain product codes representing at least 3% of records.
+3.  Combine smaller categories into `OTHER`.
+4.  Create percentage labels and draw the pie chart.
+
+**Expected result.** A simplified view of the product-code distribution is produced.
 
 ```{r}
 prod <- table(SalesDay$Product_Code)
@@ -739,7 +1549,7 @@ porc <- prop.table(prod)
 grandes <- prod[porc >= 0.03]
 otros <- sum(prod[porc < 0.03])
 
-final <- c(grandes, OTROS = otros)
+final <- c(grandes, OTHER = otros)
 final <- sort(final, decreasing = TRUE)
 
 labels <- paste0(names(final), " (", round(prop.table(final) * 100, 2), "%)")
@@ -750,10 +1560,27 @@ par(mar = c(3, 3, 5, 3))
 pie(final,
     labels = labels,
     col = colores,
-    main = "Distribución de Product Code",
+    main = "Product Code distribution",
     cex = 0.65,
     radius = 0.75)
 ```
+
+#### Step 58 — Create a refined geographic sales map using standardised names
+
+**Purpose.** Repeat the provincial mapping workflow with additional filtering and presentation adjustments.
+
+**Why this is done.** Geographic joins can fail when province names use different spelling or accents. Standardisation and explicit map limits improve match quality and readability.
+
+**Step-by-step.**
+
+1.  Aggregate non-negative sales by outlet and derive province codes from postal codes.
+2.  Map province codes to province names.
+3.  Standardise province names by converting them to uppercase ASCII text.
+4.  Join sales totals to NUTS boundaries.
+5.  Exclude the Canary Islands, Ceuta and Melilla for a mainland-focused view.
+6.  Apply map limits and a clean visual theme.
+
+**Expected result.** A refined mainland Spain and Balearic Islands heatmap is produced.
 
 ```{r}
 library(dplyr)
@@ -763,10 +1590,10 @@ library(giscoR)
 library(stringi)
 library(scales)
 
-# Cantidad de ventas negativas
+# Number of negative sales records
 sum(SalesDay$Sales_Uds < 0, na.rm = TRUE)
 
-# 1. Ventas por establecimiento
+# 1. Sales by outlet
 sales_affiliated <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   group_by(Affiliated_Code) %>%
@@ -775,21 +1602,21 @@ sales_affiliated <- SalesDay %>%
     .groups = "drop"
   )
 
-# 2. Unir ventas con Affiliated_Outlets para obtener código postal
+# 2. Join sales with Affiliated_Outlets to obtain the postal code
 sales_postal <- sales_affiliated %>%
   left_join(
     Affiliated_Outlets %>% select(Affiliated_Code, POSTALCODE),
     by = "Affiliated_Code"
   )
 
-# 3. Extraer provincia desde código postal
+# 3. Extract province from the postal code
 sales_postal <- sales_postal %>%
   mutate(
     POSTALCODE = sprintf("%05d", as.numeric(POSTALCODE)),
     Provincia_Code = substr(POSTALCODE, 1, 2)
   )
 
-# 4. Tabla de provincias
+# 4. Province lookup table
 prov_map <- data.frame(
   Provincia_Code = c("01","02","03","04","05","06","07","08","09","10",
                      "11","12","13","14","15","16","17","18","19","20",
@@ -809,7 +1636,7 @@ prov_map <- data.frame(
                 "Ceuta","Melilla")
 )
 
-# 5. Ventas por provincia
+# 5. Sales by province
 sales_prov <- sales_postal %>%
   left_join(prov_map, by = "Provincia_Code") %>%
   group_by(provincia) %>%
@@ -818,25 +1645,25 @@ sales_prov <- sales_postal %>%
     .groups = "drop"
   )
 
-# 6. Descargar mapa de provincias de España
+# 6. Download the map of Spanish provinces
 spain_prov <- gisco_get_nuts(
   country = "ES",
   nuts_level = 3,
   resolution = "20"
 )
 
-# 7. Normalizar nombres
+# 7. Standardise names
 sales_prov <- sales_prov %>%
   mutate(prov_clean = stri_trans_general(toupper(provincia), "Latin-ASCII"))
 
 spain_prov <- spain_prov %>%
   mutate(prov_clean = stri_trans_general(toupper(NAME_LATN), "Latin-ASCII"))
 
-# 8. Unir mapa con ventas
+# 8. Join the map with sales data
 map_sales <- spain_prov %>%
   left_join(sales_prov, by = "prov_clean")
 
-# 9. Filtrar Canarias, Ceuta y Melilla
+# 9. Exclude the Canary Islands, Ceuta and Melilla
 map_sales_filtrado <- map_sales %>%
   filter(!prov_clean %in% c(
     "LAS PALMAS",
@@ -845,7 +1672,7 @@ map_sales_filtrado <- map_sales %>%
     "MELILLA"
   ))
 
-# 10. Mapa final centrado en península + Baleares
+# 10. Final map centred on mainland Spain and the Balearic Islands
 ggplot(map_sales_filtrado) +
   geom_sf(aes(fill = Total_Sales_Uds), color = "white", size = 0.2) +
   scale_fill_gradient(
@@ -863,8 +1690,8 @@ ggplot(map_sales_filtrado) +
     expand = FALSE
   ) +
   labs(
-    title = "Mapa de calor de unidades vendidas por provincia",
-    fill = "Unidades vendidas"
+    title = "Heatmap of units sold by province",
+    fill = "Units sold"
   ) +
   theme_minimal() +
  theme(
@@ -876,11 +1703,26 @@ ggplot(map_sales_filtrado) +
     hjust = 0.5,
     size = 18,
     face = "bold",
-    margin = margin(b = 15)   # 👈 espacio debajo del título
+    margin = margin(b = 15)   # space below the title
   ),
-  plot.margin = margin(t = 20, r = 10, b = 10, l = 10)  # 👈 MÁS espacio arriba
+  plot.margin = margin(t = 20, r = 10, b = 10, l = 10)  # MORE space at the top
   )
 ```
+
+#### Step 59 — Prepare sales and postal-code data for the official map
+
+**Purpose.** Create a clean outlet-level sales table and derive a two-digit province code.
+
+**Why this is done.** Separating data preparation from the map construction makes the workflow easier to validate and allows the official NUTS join to be performed in later blocks.
+
+**Step-by-step.**
+
+1.  Aggregate non-negative sales by affiliated outlet.
+2.  Join the outlet postal code.
+3.  Convert postal codes to five-character values so leading zeros are retained.
+4.  Extract the first two digits as the province code.
+
+**Expected result.** A province-ready sales table is created.
 
 ```{r}
 library(dplyr)
@@ -890,7 +1732,7 @@ library(giscoR)
 library(scales)
 
 # =========================
-# 1. Ventas por establecimiento
+# 1. Sales by outlet
 # =========================
 sales_affiliated <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
@@ -901,7 +1743,7 @@ sales_affiliated <- SalesDay %>%
   )
 
 # =========================
-# 2. Unir con código postal
+# 2. Join with postal code
 # =========================
 sales_postal <- sales_affiliated %>%
   left_join(
@@ -915,8 +1757,22 @@ sales_postal <- sales_affiliated %>%
 
 ```
 
+#### Step 60 — Build the province-to-NUTS lookup table
+
+**Purpose.** Create an explicit mapping between Spanish province codes, province names and NUTS identifiers.
+
+**Why this is done.** Joining by official NUTS IDs is more reliable than joining by names because names may vary across languages and data sources.
+
+**Step-by-step.**
+
+1.  List all two-digit province codes.
+2.  Associate each code with its province name.
+3.  Associate each province with the relevant NUTS identifier.
+
+**Expected result.** A reference table for robust geographic joins is created.
+
 ```{r}
-# Crear tabla de provincias
+# Create province lookup table
 
 prov_map <- data.frame(
   Provincia_Code = c("01","02","03","04","05","06","07","08","09","10",
@@ -947,8 +1803,24 @@ prov_map <- data.frame(
               "ES630","ES640"))
 ```
 
+#### Step 61 — Aggregate provincial sales and attach map boundaries
+
+**Purpose.** Prepare the final data object used by the official geographic visualisation.
+
+**Why this is done.** The sales data and spatial data must share the same NUTS key before values can be drawn on the map.
+
+**Step-by-step.**
+
+1.  Join outlet sales to the province lookup table.
+2.  Aggregate sales by NUTS ID and province.
+3.  Download NUTS level 3 boundaries for Spain.
+4.  Join sales totals to the spatial object.
+5.  Remove the Canary Islands, Ceuta and Melilla to focus the plotted extent on mainland Spain.
+
+**Expected result.** A filtered spatial dataset containing provincial sales is created.
+
 ```{r}
-# Ventas por provincia
+# Sales by province
 sales_prov <- sales_postal %>%
   left_join(prov_map, by = "Provincia_Code") %>%
   group_by(NUTS_ID, provincia) %>%
@@ -956,26 +1828,42 @@ sales_prov <- sales_postal %>%
     Total_Sales_Uds = sum(Total_Sales_Uds, na.rm = TRUE),
     .groups = "drop")
 
-# Descargar mapa de provincias de Spain
+# Download the map of Spanish provinces
 spain_prov <- gisco_get_nuts(
   country = "ES",
   nuts_level = 3,
   resolution = "20")
 
-# Unir mapa y filtrar por peninsula, sin contar Canarias, Ceuta y Melilla
+# Join the map and filter to mainland Spain, excluding the Canary Islands, Ceuta and Melilla
 map_sales <- spain_prov %>%
   left_join(sales_prov, by = "NUTS_ID")
 
 map_sales_filtrado <- map_sales %>%
   filter(!NUTS_ID %in% c(
-    "ES70",   # Canarias
+    "ES70",   # Canary Islands
     "ES630",  # Ceuta
     "ES640"   # Melilla
   ))
 ```
 
+#### Step 62 — Draw the official provincial sales heatmap
+
+**Purpose.** Visualise total units sold using the prepared NUTS-based spatial dataset.
+
+**Why this is done.** The refined map communicates regional sales concentration while avoiding axes and grid elements that do not add analytical value.
+
+**Step-by-step.**
+
+1.  Map `Total_Sales_Uds` to polygon fill colour.
+2.  Format large numbers in the legend.
+3.  Set geographic limits around mainland Spain and the Balearic Islands.
+4.  Remove axes, ticks and grid lines.
+5.  Centre and format the title.
+
+**Expected result.** The final presentation-ready provincial sales heatmap is generated.
+
 ```{r}
-# Crear visualización
+# Create visualisation
 ggplot(map_sales_filtrado) +
   geom_sf(aes(fill = Total_Sales_Uds), color = "white", size = 0.2) +
   scale_fill_gradient(
@@ -990,8 +1878,8 @@ ggplot(map_sales_filtrado) +
     ylim = c(35.5, 44),
     expand = FALSE) +
   labs(
-    title = "Mapa de calor de unidades vendidas\npor provincia",
-    fill = "Unidades vendidas") +
+    title = "Heatmap of units sold\nby province",
+    fill = "Units sold") +
   theme_minimal() +
   theme(
     axis.title = element_blank(),
@@ -1006,6 +1894,20 @@ ggplot(map_sales_filtrado) +
     plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
 ```
 
+#### Step 63 — Inspect the distribution of delivery units
+
+**Purpose.** Use a box plot to summarise the distribution of `Delivery_Uds`.
+
+**Why this is done.** A box plot makes the median, spread and potential extreme values visible and is useful for detecting unusual delivery quantities.
+
+**Step-by-step.**
+
+1.  Use delivery units as the numeric variable.
+2.  Draw the box plot.
+3.  Highlight outliers in red.
+
+**Expected result.** A compact diagnostic view of delivery quantities is produced.
+
 ```{r}
 library(ggplot2)
 library(dplyr)
@@ -1018,6 +1920,21 @@ DeliveryDay %>%
     y = "") +
   theme_minimal()
 ```
+
+#### Step 64 — Visualise the product-format composition
+
+**Purpose.** Calculate and plot the percentage of products belonging to each format.
+
+**Why this is done.** Percentages provide a clearer comparison of product composition than raw counts when the focus is category share.
+
+**Step-by-step.**
+
+1.  Count products by `Format`.
+2.  Convert counts to percentages.
+3.  Order formats from largest to smallest.
+4.  Draw bars and label them with percentages.
+
+**Expected result.** A percentage-based product-format chart is produced.
 
 ```{r}
 library(dplyr)
@@ -1038,29 +1955,45 @@ Product %>%
     vjust = -0.3
   ) +
   labs(
-    title = "Distribución de formatos de producto",
+    title = "Product format distribution",
     x = " ",
-    y = "Porcentaje (%)"
+    y = "Percentage (%)"
   ) +
   theme_minimal()
 ```
+
+#### Step 65 — Explore monthly out-of-stock incidents using flexible date parsing
+
+**Purpose.** Create an initial monthly incident series while accepting multiple possible date formats.
+
+**Why this is done.** This exploratory version is useful when the original date field's exact format is uncertain.
+
+**Step-by-step.**
+
+1.  Parse the source date using several possible date orders.
+2.  Round dates down to the first day of each month.
+3.  Count incident records by month.
+4.  Create missing months and replace absent counts with zero.
+5.  Plot the resulting monthly series.
+
+**Expected result.** An exploratory monthly OoS trend is generated.
 
 ```{r}
 library(dplyr)
 library(ggplot2)
 library(lubridate)
 
-# Ajusta "Fecha" por el nombre real
+# Replace "Fecha" with the actual column name
 OoSDay <- OoSDay %>%
   mutate(Date = parse_date_time(Fecha, orders = c("ymd", "dmy", "mdy")))
 
-# Agrupar por mes
+# Group by month
 oos_mes <- OoSDay %>%
   mutate(Mes = floor_date(Date, "month")) %>%
   group_by(Mes) %>%
   summarise(Registros = n(), .groups = "drop")
 
-# Completar meses
+# Add missing months
 todos_meses <- data.frame(
   Mes = seq(min(oos_mes$Mes), max(oos_mes$Mes), by = "month")
 )
@@ -1069,14 +2002,14 @@ oos_mes <- todos_meses %>%
   left_join(oos_mes, by = "Mes") %>%
   mutate(Registros = ifelse(is.na(Registros), 0, Registros))
 
-# Gráfico
+# Chart
 ggplot(oos_mes, aes(x = Mes, y = Registros)) +
   geom_line(color = "steelblue", size = 1) +
   geom_point(color = "steelblue", size = 2) +
   scale_x_date(date_labels = "%b", date_breaks = "1 month") +
   labs(
-    title = "Distribución mensual de incidencias (OoSDay)",
-    y = "Número de registros",
+    title = "Monthly incident distribution (OoSDay)",
+    y = "Number of records",
     x = ""
   ) +
   theme_minimal() +
@@ -1086,19 +2019,35 @@ ggplot(oos_mes, aes(x = Mes, y = Registros)) +
   )
 ```
 
+#### Step 66 — Create a complete monthly out-of-stock series
+
+**Purpose.** Convert the official `OoS_DAY` field and count incidents for every month from January to December.
+
+**Why this is done.** Using a complete month structure prevents absent months from disappearing from the chart and preserves chronological order.
+
+**Step-by-step.**
+
+1.  Convert `OoS_DAY` to a date and extract the month number.
+2.  Count records by month.
+3.  Join the counts to a 12-month reference table.
+4.  Replace missing monthly counts with zero.
+5.  Assign ordered English month labels and draw the line chart.
+
+**Expected result.** A complete monthly OoS record distribution is produced.
+
 ```{r}
 library(dplyr)
 library(ggplot2)
 library(lubridate)
 
-# 1. Convertir fecha
+# 1. Convert date
 OoSDay <- OoSDay %>%
   mutate(
     Fecha = ymd(as.character(OoS_DAY)),
     Mes_num = month(Fecha)
   )
 
-# 2. Contar registros por mes
+# 2. Count records by month
 oos_mes <- OoSDay %>%
   group_by(Mes_num) %>%
   summarise(
@@ -1106,30 +2055,30 @@ oos_mes <- OoSDay %>%
     .groups = "drop"
   )
 
-# 3. Crear todos los meses (1–12)
+# 3. Create all months (1–12)
 todos_meses <- data.frame(
   Mes_num = 1:12
 )
 
-# 4. Unir y rellenar con 0
+# 4. Join and replace missing values with 0
 oos_mes <- todos_meses %>%
   left_join(oos_mes, by = "Mes_num") %>%
   mutate(Registros = ifelse(is.na(Registros), 0, Registros))
 
-# 5. Nombres de meses en orden
-meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
-           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+# 5. Month names in chronological order
+meses <- c("January","February","March","April","May","June",
+           "July","August","September","October","November","December")
 
 oos_mes$Mes <- factor(meses[oos_mes$Mes_num], levels = meses)
 
-# 6. Gráfico
+# 6. Chart
 ggplot(oos_mes, aes(x = Mes, y = Registros, group = 1)) +
   geom_line(color = "steelblue", linewidth = 1) +
   geom_point(color = "steelblue", size = 2) +
   labs(
-    title = "Distribución mensual de registros OoSDay",
+    title = "Monthly OoSDay record distribution",
     x = "",
-    y = "Número de registros"
+    y = "Number of records"
   ) +
   theme_minimal() +
   theme(
@@ -1138,19 +2087,34 @@ ggplot(oos_mes, aes(x = Mes, y = Registros, group = 1)) +
   )
 ```
 
+#### Step 67 — Refine the monthly out-of-stock chart
+
+**Purpose.** Produce a cleaner version of the same monthly OoS analysis.
+
+**Why this is done.** This alternative retains the data-preparation logic while simplifying the y-axis labelling for use in a dashboard or report.
+
+**Step-by-step.**
+
+1.  Repeat the date conversion and monthly counting.
+2.  Retain all 12 months and replace missing values with zero.
+3.  Use ordered month names.
+4.  Draw the line chart without a y-axis title.
+
+**Expected result.** A presentation-oriented monthly OoS chart is generated.
+
 ```{r}
 library(dplyr)
 library(ggplot2)
 library(lubridate)
 
-# 1. Convertir fecha
+# 1. Convert date
 OoSDay <- OoSDay %>%
   mutate(
     Fecha = ymd(as.character(OoS_DAY)),
     Mes_num = month(Fecha)
   )
 
-# 2. Contar registros por mes
+# 2. Count records by month
 oos_mes <- OoSDay %>%
   group_by(Mes_num) %>%
   summarise(
@@ -1158,30 +2122,30 @@ oos_mes <- OoSDay %>%
     .groups = "drop"
   )
 
-# 3. Crear todos los meses (1–12)
+# 3. Create all months (1–12)
 todos_meses <- data.frame(
   Mes_num = 1:12
 )
 
-# 4. Rellenar con 0
+# 4. Replace missing values with 0
 oos_mes <- todos_meses %>%
   left_join(oos_mes, by = "Mes_num") %>%
   mutate(Registros = ifelse(is.na(Registros), 0, Registros))
 
-# 5. Nombres de meses
-meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
-           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+# 5. Month names
+meses <- c("January","February","March","April","May","June",
+           "July","August","September","October","November","December")
 
 oos_mes$Mes <- factor(meses[oos_mes$Mes_num], levels = meses)
 
-# 6. Gráfico
+# 6. Chart
 ggplot(oos_mes, aes(x = Mes, y = Registros, group = 1)) +
   geom_line(color = "steelblue", linewidth = 1) +
   geom_point(color = "steelblue", size = 2) +
   labs(
-    title = "Distribución mensual de OoSDay",
+    title = "Monthly OoSDay distribution",
     x = "",
-    y = ""   # 👈 quitamos "Número de registros"
+    y = ""   # remove "Number of records"
   ) +
   theme_minimal() +
   theme(
@@ -1190,16 +2154,32 @@ ggplot(oos_mes, aes(x = Mes, y = Registros, group = 1)) +
   )
 ```
 
+#### Step 68 — Create a monthly delivery series from eight-digit dates
+
+**Purpose.** Safely derive months from delivery dates stored in `YYYYMMDD` text form.
+
+**Why this is done.** Filtering for eight-character dates avoids extracting months from malformed values.
+
+**Step-by-step.**
+
+1.  Convert the delivery date to text.
+2.  Retain only eight-character values.
+3.  Extract characters five and six as the month.
+4.  Validate that the month is between 1 and 12.
+5.  Count records, add missing months and plot the series.
+
+**Expected result.** A monthly delivery-record distribution based on validated dates is produced.
+
 ```{r}
 library(dplyr)
 library(ggplot2)
 
-# 1. Limpiar y quedarnos solo con fechas válidas
+# 1. Clean the data and retain valid dates only
 delivery_clean <- DeliveryDay %>%
   mutate(Delivery_DAY_txt = as.character(Delivery_DAY)) %>%
-  filter(nchar(Delivery_DAY_txt) == 8)  # solo fechas tipo 20150309
+  filter(nchar(Delivery_DAY_txt) == 8)  # only dates in the 20150309 format
 
-# 2. Extraer el mes correctamente
+# 2. Extract the month correctly
 delivery_mes <- delivery_clean %>%
   mutate(
     Mes_num = as.numeric(substr(Delivery_DAY_txt, 5, 6))
@@ -1211,25 +2191,25 @@ delivery_mes <- delivery_clean %>%
     .groups = "drop"
   )
 
-# 3. Asegurar meses 1–12
+# 3. Ensure months 1–12 are included
 todos_meses <- data.frame(Mes_num = 1:12)
 
 delivery_mes <- todos_meses %>%
   left_join(delivery_mes, by = "Mes_num") %>%
   mutate(Registros = ifelse(is.na(Registros), 0, Registros))
 
-# 4. Nombres de meses
-meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
-           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+# 4. Month names
+meses <- c("January","February","March","April","May","June",
+           "July","August","September","October","November","December")
 
 delivery_mes$Mes <- factor(meses[delivery_mes$Mes_num], levels = meses)
 
-# 5. Gráfico
+# 5. Chart
 ggplot(delivery_mes, aes(x = Mes, y = Registros, group = 1)) +
   geom_line(color = "steelblue", linewidth = 1) +
   geom_point(color = "steelblue", size = 2) +
   labs(
-    title = "Distribución mensual de registros DeliveryDay",
+    title = "Monthly DeliveryDay record distribution",
     x = "",
     y = ""
   ) +
@@ -1240,10 +2220,26 @@ ggplot(delivery_mes, aes(x = Mes, y = Registros, group = 1)) +
   )
 ```
 
+#### Step 69 — Create a monthly delivery series using an explicit date object
+
+**Purpose.** Provide a second, more transparent date-conversion approach without overwriting the original delivery field.
+
+**Why this is done.** Keeping the original date column intact supports traceability and makes it easier to compare the transformed value with the raw source.
+
+**Step-by-step.**
+
+1.  Reload the delivery dataset.
+2.  Create a text version of the original date.
+3.  Convert it to a new date field using the `%Y%m%d` format.
+4.  Extract and aggregate by month.
+5.  Add all 12 months and draw the time-series chart.
+
+**Expected result.** An alternative monthly delivery chart is produced from a dedicated date variable.
+
 ```{r}
 DeliveryDay <- read.csv("~/Downloads/DeliveryDay.csv", sep = ";")
 
-# 3. Crear fecha nueva SIN modificar Delivery_DAY
+# 3. Create a new date without modifying Delivery_DAY
 DeliveryDay <- DeliveryDay %>%
   mutate(
     Delivery_DAY_txt = as.character(Delivery_DAY),
@@ -1251,7 +2247,7 @@ DeliveryDay <- DeliveryDay %>%
     Mes_num = as.numeric(format(Fecha_Delivery, "%m"))
   )
 
-# 4. Contar registros por mes
+# 4. Count records by month
 delivery_mes <- DeliveryDay %>%
   filter(!is.na(Mes_num)) %>%
   group_by(Mes_num) %>%
@@ -1260,25 +2256,25 @@ delivery_mes <- DeliveryDay %>%
     .groups = "drop"
   )
 
-# 5. Crear todos los meses de enero a diciembre
+# 5. Create all months from January to December
 todos_meses <- data.frame(Mes_num = 1:12)
 
 delivery_mes <- todos_meses %>%
   left_join(delivery_mes, by = "Mes_num") %>%
   mutate(Registros = ifelse(is.na(Registros), 0, Registros))
 
-# 6. Nombres de meses
-meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
-           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+# 6. Month names
+meses <- c("January","February","March","April","May","June",
+           "July","August","September","October","November","December")
 
 delivery_mes$Mes <- factor(meses[delivery_mes$Mes_num], levels = meses)
 
-# 7. Gráfico temporal
+# 7. Time-series chart
 ggplot(delivery_mes, aes(x = Mes, y = Registros, group = 1)) +
   geom_line(color = "steelblue", linewidth = 1) +
   geom_point(color = "steelblue", size = 2) +
   labs(
-    title = "Distribución mensual de DeliveryDay",
+    title = "Monthly DeliveryDay distribution",
     x = "",
     y = ""
   ) +
@@ -1289,11 +2285,26 @@ ggplot(delivery_mes, aes(x = Mes, y = Registros, group = 1)) +
   )
 ```
 
+#### Step 70 — Test the linear relationship between outlet size and sales
+
+**Purpose.** Convert size ranges into approximate numeric midpoints and correlate them with total outlet sales.
+
+**Why this is done.** Pearson correlation requires numeric variables. Approximate midpoints allow an exploratory linear analysis of the ordered size bands.
+
+**Step-by-step.**
+
+1.  Map each size category to a representative numeric value.
+2.  Aggregate sales by affiliated outlet.
+3.  Join outlet characteristics and remove records without a numeric size.
+4.  Calculate correlation and draw a scatter plot with a linear trend.
+
+**Expected result.** A correlation coefficient and supporting size-versus-sales scatter plot are produced.
+
 ```{r}
 library(dplyr)
 library(ggplot2)
 
-# Convertir tamaño a valor numérico aproximado
+# Convert store size to an approximate numeric value
 Affiliated_Outlets <- Affiliated_Outlets %>%
   mutate(
     Tam_num = case_when(
@@ -1307,12 +2318,12 @@ Affiliated_Outlets <- Affiliated_Outlets %>%
     )
   )
 
-# Ventas por tienda
+# Sales by store
 sales_aff <- SalesDay %>%
   group_by(Affiliated_Code) %>%
   summarise(Ventas = sum(Sales_Uds, na.rm = TRUE), .groups = "drop")
 
-# Unir
+# Join
 df_corr <- sales_aff %>%
   left_join(Affiliated_Outlets, by = "Affiliated_Code") %>%
   filter(!is.na(Tam_num))
@@ -1321,33 +2332,48 @@ ggplot(df_corr, aes(x = Tam_num, y = Ventas)) +
   geom_point(color = "steelblue", alpha = 0.5) +
   geom_smooth(method = "lm", color = "red") +
   labs(
-    title = "Relación entre tamaño del establecimiento y ventas",
-    x = "Tamaño (m2)",
-    y = "Ventas"
+    title = "Relationship between store size and sales",
+    x = "Size (m²)",
+    y = "Sales"
   ) +
   theme_minimal()
 ```
+
+#### Step 71 — Compare sales distributions across outlet-size categories
+
+**Purpose.** Use categorical size bands directly rather than converting them to numeric midpoints.
+
+**Why this is done.** A box plot avoids assuming that the relationship between size and sales is linear and shows variation within each category.
+
+**Step-by-step.**
+
+1.  Aggregate non-negative sales by outlet.
+2.  Join the `Tam_m2` category.
+3.  Retain unknown values as `N.D.` and define a logical category order.
+4.  Draw a box plot of outlet sales for each size band.
+
+**Expected result.** A category-level comparison of sales distributions is generated.
 
 ```{r}
 library(dplyr)
 library(ggplot2)
 
-# 1. Ventas por punto de venta
+# 1. Sales by outlet
 sales_aff <- SalesDay %>%
-  filter(Sales_Uds >= 0) %>%   # excluye ventas negativas
+  filter(Sales_Uds >= 0) %>%   # exclude negative sales
   group_by(Affiliated_Code) %>%
   summarise(
     Ventas = sum(Sales_Uds, na.rm = TRUE),
     .groups = "drop")
 
-# 2. Unir ventas con tamaño del punto de venta
+# 2. Join sales with outlet size
 df_corr <- sales_aff %>%
   left_join(
     Affiliated_Outlets %>% select(Affiliated_Code, Tam_m2),
     by = "Affiliated_Code"
   )
 
-# 3. Mantener N.D. y ordenar categorías
+# 3. Retain N.D. and order the categories
 df_corr <- df_corr %>%
   mutate(
     Tam_m2 = ifelse(is.na(Tam_m2) | Tam_m2 == "", "N.D.", Tam_m2),
@@ -1356,11 +2382,11 @@ df_corr <- df_corr %>%
       levels = c("<2m2", "2-5m2", "5-10m2", "10-20m2",
                  "20-30m2", ">30m2", ">20m2", "N.D.")))
 
-# 4. Crear gráfico boxplot
+# 4. Create box plot
 ggplot(df_corr, aes(x = Tam_m2, y = Ventas)) +
   geom_boxplot(fill = "steelblue", alpha = 0.7, outlier.alpha = 0.4) +
   labs(
-    title = "Distribución de ventas según tamaño del punto de venta",
+    title = "Sales distribution by outlet size",
     x = "",
     y = ""
   ) +
@@ -1370,11 +2396,25 @@ ggplot(df_corr, aes(x = Tam_m2, y = Ventas)) +
     axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
+#### Step 72 — Compare sales across management clusters
+
+**Purpose.** Show the distribution of total outlet sales within each predefined management cluster.
+
+**Why this is done.** This reveals whether the existing business clusters correspond to meaningful differences in sales performance.
+
+**Step-by-step.**
+
+1.  Aggregate non-negative sales by outlet.
+2.  Join each outlet's `Management_Cluster`.
+3.  Draw a box plot for every cluster.
+
+**Expected result.** A sales-distribution comparison by cluster is produced.
+
 ```{r}
 library(dplyr)
 library(ggplot2)
 
-# Ventas por establecimiento
+# Sales by outlet
 sales_cluster <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   group_by(Affiliated_Code) %>%
@@ -1387,13 +2427,13 @@ sales_cluster <- SalesDay %>%
     by = "Affiliated_Code"
   )
 
-# Gráfico
+# Chart
 ggplot(sales_cluster, aes(x = factor(Management_Cluster), y = Ventas)) +
   geom_boxplot(fill = "steelblue", alpha = 0.7, outlier.alpha = 0.3) +
   labs(
-    title = "Distribución de ventas por cluster",
+    title = "Sales distribution by cluster",
     x = "Cluster",
-    y = "Ventas"
+    y = "Sales"
   ) +
   theme_minimal() +
   theme(
@@ -1401,13 +2441,28 @@ ggplot(sales_cluster, aes(x = factor(Management_Cluster), y = Ventas)) +
   )
 ```
 
+#### Step 73 — Refine the management-cluster sales comparison
+
+**Purpose.** Repeat the cluster box plot with formatted y-axis values.
+
+**Why this is done.** Large sales values are easier to read when thousands separators are applied.
+
+**Step-by-step.**
+
+1.  Recreate the non-negative outlet sales totals.
+2.  Join management clusters.
+3.  Draw the box plots.
+4.  Format the vertical scale with readable number labels.
+
+**Expected result.** A polished cluster sales-distribution chart is generated.
+
 ```{r}
  library(dplyr)
 library(ggplot2)
 library(scales)
 
 sales_cluster <- SalesDay %>%
-  filter(Sales_Uds >= 0) %>%   # 🔥 quitamos negativas
+  filter(Sales_Uds >= 0) %>%   # exclude negative values
   group_by(Affiliated_Code) %>%
   summarise(
     Ventas = sum(Sales_Uds, na.rm = TRUE),
@@ -1422,9 +2477,9 @@ ggplot(sales_cluster, aes(x = factor(Management_Cluster), y = Ventas)) +
   geom_boxplot(fill = "steelblue", alpha = 0.7, outlier.alpha = 0.3) +
   scale_y_continuous(labels = comma) +
   labs(
-    title = "Distribución de ventas por cluster",
+    title = "Sales distribution by cluster",
     x = "Cluster",
-    y = "Ventas"
+    y = "Sales"
   ) +
   theme_minimal() +
   theme(
@@ -1432,12 +2487,27 @@ ggplot(sales_cluster, aes(x = factor(Management_Cluster), y = Ventas)) +
   )
 ```
 
+#### Step 74 — Compare sales across engagement levels
+
+**Purpose.** Evaluate how total outlet sales vary according to the `Engage` score.
+
+**Why this is done.** The analysis helps determine whether higher or lower engagement levels are associated with different sales distributions.
+
+**Step-by-step.**
+
+1.  Aggregate non-negative sales by outlet.
+2.  Join the outlet engagement level.
+3.  Treat engagement as a categorical variable.
+4.  Draw box plots and format the sales scale.
+
+**Expected result.** A sales-distribution chart by engagement level is produced.
+
 ```{r}
 library(dplyr)
 library(ggplot2)
 library(scales)
 
-# Ventas por establecimiento + Engage, quitando ventas negativas
+# Sales by outlet and Engage, excluding negative sales
 sales_engage <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   group_by(Affiliated_Code) %>%
@@ -1450,14 +2520,14 @@ sales_engage <- SalesDay %>%
     by = "Affiliated_Code"
   )
 
-# Gráfico: ventas por nivel de engagement
+# Chart: sales by engagement level
 ggplot(sales_engage, aes(x = factor(Engage), y = Ventas)) +
   geom_boxplot(fill = "steelblue", alpha = 0.7, outlier.alpha = 0.3) +
   scale_y_continuous(labels = comma) +
   labs(
-    title = "Distribución de ventas por nivel de engagement",
-    x = "Nivel de engagement",
-    y = "Ventas"
+    title = "Sales distribution by engagement level",
+    x = "Engagement level",
+    y = "Sales"
   ) +
   theme_minimal() +
   theme(
@@ -1465,12 +2535,28 @@ ggplot(sales_engage, aes(x = factor(Engage), y = Ventas)) +
   )
 ```
 
+#### Step 75 — Analyse the monthly sales trend
+
+**Purpose.** Aggregate non-negative units sold by month and display their evolution through the year.
+
+**Why this is done.** Monthly totals reveal temporal patterns that are not visible in transaction-level data.
+
+**Step-by-step.**
+
+1.  Extract the month from the sales date stored as text.
+2.  Validate month values and aggregate units sold.
+3.  Create a complete January-to-December structure.
+4.  Replace missing months with zero and apply ordered month labels.
+5.  Draw the monthly line chart.
+
+**Expected result.** A chronological monthly sales trend is produced.
+
 ```{r}
 library(dplyr)
 library(ggplot2)
 library(scales)
 
-# 1. Crear ventas mensuales quitando ventas negativas
+# 1. Calculate monthly sales excluding negative values
 ventas_mes <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   mutate(
@@ -1484,28 +2570,28 @@ ventas_mes <- SalesDay %>%
     .groups = "drop"
   )
 
-# 2. Crear todos los meses de enero a diciembre
+# 2. Create all months from January to December
 todos_meses <- data.frame(Mes_num = 1:12)
 
 ventas_mes <- todos_meses %>%
   left_join(ventas_mes, by = "Mes_num") %>%
   mutate(Ventas = ifelse(is.na(Ventas), 0, Ventas))
 
-# 3. Nombres de meses en orden
-meses <- c("Enero","Febrero","Marzo","Abril","Mayo","Junio",
-           "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre")
+# 3. Month names in chronological order
+meses <- c("January","February","March","April","May","June",
+           "July","August","September","October","November","December")
 
 ventas_mes$Mes <- factor(meses[ventas_mes$Mes_num], levels = meses)
 
-# 4. Gráfico
+# 4. Chart
 ggplot(ventas_mes, aes(x = Mes, y = Ventas, group = 1)) +
   geom_line(color = "steelblue", linewidth = 1) +
   geom_point(color = "steelblue", size = 2) +
   scale_y_continuous(labels = comma) +
   labs(
-    title = "Evolución mensual de las ventas",
+    title = "Monthly sales trend",
     x = "",
-    y = "Ventas"
+    y = "Sales"
   ) +
   theme_minimal() +
   theme(
@@ -1514,13 +2600,29 @@ ggplot(ventas_mes, aes(x = Mes, y = Ventas, group = 1)) +
   )
 ```
 
+#### Step 76 — Identify provinces with the largest outlet networks
+
+**Purpose.** Rank provinces by the number of affiliated outlets.
+
+**Why this is done.** Outlet count provides a view of geographic coverage that complements the sales heatmap.
+
+**Step-by-step.**
+
+1.  Create a postal-code-to-province lookup table.
+2.  Standardise postal codes to five characters and derive province codes.
+3.  Join province names to outlets.
+4.  Count outlets by province and retain the top 10.
+5.  Create a ranked bar chart.
+
+**Expected result.** A top-10 province ranking by outlet count is produced.
+
 ```{r}
-#tabla de top 10 ciudades
+# Top 10 cities table
 library(dplyr)
 library(ggplot2)
 library(stringr)
 
-# Diccionario de provincias por código postal
+# Province lookup table by postal code
 provincias_cp <- data.frame(
   cod_prov = c("01","02","03","04","05","06","07","08","09","10",
                "11","12","13","14","15","16","17","18","19","20",
@@ -1541,7 +2643,7 @@ provincias_cp <- data.frame(
                 "Ceuta","Melilla")
 )
 
-# Crear provincia desde POSTALCODE
+# Derive province from POSTALCODE
 affiliated_provincias <- Affiliated_Outlets %>%
   mutate(
     POSTALCODE = str_pad(as.character(POSTALCODE), width = 5, pad = "0"),
@@ -1549,22 +2651,22 @@ affiliated_provincias <- Affiliated_Outlets %>%
   ) %>%
   left_join(provincias_cp, by = "cod_prov")
 
-# Top 10 provincias con más puntos de venta
+# Top 10 provinces by number of outlets
 top10_provincias <- affiliated_provincias %>%
   filter(!is.na(Provincia)) %>%
   count(Provincia, name = "Numero_puntos_venta") %>%
   arrange(desc(Numero_puntos_venta)) %>%
   slice_head(n = 10)
 
-# Gráfico
+# Chart
 ggplot(top10_provincias,
        aes(x = reorder(Provincia, -Numero_puntos_venta),
            y = Numero_puntos_venta)) +
   geom_col() +
   labs(
-    title = "Top 10 Provincias con más puntos de venta",
-    x = "Provincia",
-    y = "Número de puntos de venta"
+    title = "Top 10 provinces by number of outlets",
+    x = "Province",
+    y = "Number of outlets"
   ) +
   theme_minimal() +
   theme(
@@ -1572,23 +2674,38 @@ ggplot(top10_provincias,
   )
 ```
 
+#### Step 77 — Refine the top-province outlet chart
+
+**Purpose.** Apply consistent colour, spacing and typography to the province ranking.
+
+**Why this is done.** This block improves presentation quality without changing the underlying ranking.
+
+**Step-by-step.**
+
+1.  Reuse the previously calculated top-10 province table.
+2.  Draw the bars in a consistent blue.
+3.  Remove background grid lines.
+4.  Rotate labels and increase title and axis text sizes.
+
+**Expected result.** A presentation-ready top-province chart is generated.
+
 ```{r}
 ggplot(top10_provincias,
        aes(x = reorder(Provincia, -Numero_puntos_venta),
            y = Numero_puntos_venta)) +
   
-  geom_col(fill = "#1f77b4") +   # Color azul
+  geom_col(fill = "#1f77b4") +   # Blue colour
   
   labs(
-    title = "Top 10 Provincias con más puntos de venta",
-    x = "Provincia",
-    y = "Número de puntos de venta"
+    title = "Top 10 provinces by number of outlets",
+    x = "Province",
+    y = "Number of outlets"
   ) +
   
   theme_minimal() +
   
   theme(
-    panel.grid = element_blank(),          # Quita líneas del fondo
+    panel.grid = element_blank(),          # Remove background grid lines
     axis.text.x = element_text(
       angle = 45,
       hjust = 1
@@ -1603,10 +2720,26 @@ ggplot(top10_provincias,
   )
 ```
 
+#### Step 78 — Build an outlet-level operational correlation table
+
+**Purpose.** Combine sales, product variety, deliveries and scheduled shipments for each affiliated outlet.
+
+**Why this is done.** Placing operational measures at the same outlet level allows their relationships to be examined in a single correlation matrix.
+
+**Step-by-step.**
+
+1.  Aggregate sales and distinct product counts by outlet.
+2.  Aggregate delivered units by outlet.
+3.  Count scheduled route records by outlet.
+4.  Join the three summaries.
+5.  Select the numeric measures and calculate their correlations.
+
+**Expected result.** A matrix describing the linear relationships among outlet-level operational metrics is created.
+
 ```{r}
 library(dplyr)
 
-# Ventas por afiliado
+# Sales by affiliated outlet
 ventas_afiliados <- SalesDay %>%
   group_by(Affiliated_Code) %>%
   summarise(
@@ -1614,33 +2747,33 @@ ventas_afiliados <- SalesDay %>%
     Productos = n_distinct(Product_Code)
   )
 
-# Entregas realizadas por afiliado
+# Deliveries completed by affiliated outlet
 entregas_afiliados <- DeliveryDay %>%
   group_by(Affiliated_Code) %>%
   summarise(
     Entregas = sum(Delivery_Uds, na.rm = TRUE)
   )
 
-# Envíos programados por afiliado
+# Scheduled shipments by affiliated outlet
 envios_programados_afiliados <- RouteDay %>%
   group_by(Affiliated_Code) %>%
   summarise(
     Envios_Programados = n()
   )
 
-# Unir tablas
+# Join tables
 datos <- ventas_afiliados %>%
   left_join(entregas_afiliados,
             by = "Affiliated_Code") %>%
   left_join(envios_programados_afiliados,
             by = "Affiliated_Code")
 
-# Matriz de correlación
+# Correlation matrix
 matriz <- cor(
   datos[, c(
-    "Ventas",
+    "Sales",
     "Productos",
-    "Entregas",
+    "Deliveries",
     "Envios_Programados"
   )],
   use = "complete.obs"
@@ -1648,6 +2781,20 @@ matriz <- cor(
 
 matriz
 ```
+
+#### Step 79 — Visualise the operational correlation matrix
+
+**Purpose.** Display the correlations calculated in the previous step.
+
+**Why this is done.** A colour-based upper-triangle matrix makes the direction and magnitude of several relationships easier to compare than a numeric table.
+
+**Step-by-step.**
+
+1.  Pass the matrix to `corrplot()`.
+2.  Use colour to encode the coefficients.
+3.  Display the numeric values inside the cells.
+
+**Expected result.** A compact operational correlation plot is produced.
 
 ```{r}
 library(corrplot)
@@ -1660,12 +2807,28 @@ corrplot(
 )
 ```
 
+#### Step 80 — Compare average sales by outlet size
+
+**Purpose.** Calculate the mean total sales of outlets within each size category.
+
+**Why this is done.** This summary provides a direct business comparison of typical outlet performance by physical size.
+
+**Step-by-step.**
+
+1.  Aggregate non-negative sales by outlet.
+2.  Join outlet attributes.
+3.  Group outlets by `Tam_m2`.
+4.  Calculate average total sales for each category.
+5.  Sort and plot the categories.
+
+**Expected result.** A bar chart ranking store-size categories by average sales is produced.
+
 ```{r}
-# Ventas medias por tamaño del establecimiento
+# Average sales by store size
 library(dplyr)
 library(ggplot2)
 
-# Ventas totales por afiliado
+# Total sales by affiliated outlet
 ventas_tam <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   group_by(Affiliated_Code) %>%
@@ -1682,7 +2845,7 @@ ventas_tam <- SalesDay %>%
   ) %>%
   arrange(desc(Ventas_Medias))
 
-# Gráfico
+# Chart
 ggplot(
   ventas_tam,
   aes(
@@ -1692,9 +2855,9 @@ ggplot(
 ) +
   geom_col(fill = "steelblue") +
   labs(
-    title = "Ventas medias por tamaño del punto de venta",
+    title = "Average sales by outlet size",
     x = "",
-    y = "Ventas Medias"
+    y = "Average sales"
   ) +
   theme_minimal() +
   theme(
@@ -1712,15 +2875,44 @@ ggplot(
   )
 ```
 
-```{r}
+#### Step 81 — Mark the start of an example section
+
+**Purpose.** Identify a placeholder that was used during development.
+
+**Why this is done.** The original notebook contains the word `EJEMPLO` as an R expression. It does not perform analysis and would cause an error unless an object with that name exists.
+
+**Step-by-step.**
+
+1.  Treat this block as a development marker rather than an analytical step.
+2.  Keep it documented so the evolution of the notebook is transparent.
+
+**Expected result.** No analytical output is expected from this placeholder.
+
+```{r eval=FALSE}
 EJEMPLO
 ```
+
+#### Step 82 — Rank the top 20 municipalities by sales
+
+**Purpose.** Aggregate outlet sales at municipality level and display the highest-performing municipalities.
+
+**Why this is done.** Municipality-level analysis provides more local detail than the province map and helps identify concentrated urban markets.
+
+**Step-by-step.**
+
+1.  Aggregate non-negative sales by outlet.
+2.  Join outlet and postal-code reference data.
+3.  Aggregate sales by municipality.
+4.  Sort the results and retain the top 20.
+5.  Reverse the factor order and use horizontal bars so the largest value appears at the top.
+
+**Expected result.** A horizontal ranking of the top 20 municipalities is produced.
 
 ```{r}
 library(dplyr)
 library(ggplot2)
 
-# Ventas totales por afiliado
+# Total sales by affiliated outlet
 ventas_afiliado <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   group_by(Affiliated_Code) %>%
@@ -1729,7 +2921,7 @@ ventas_afiliado <- SalesDay %>%
     .groups = "drop"
   )
 
-# Ventas totales por municipio
+# Total sales by municipality
 ventas_municipio <- ventas_afiliado %>%
   left_join(Affiliated_Outlets, by = "Affiliated_Code") %>%
   left_join(
@@ -1745,13 +2937,13 @@ ventas_municipio <- ventas_afiliado %>%
   arrange(desc(Ventas_Totales)) %>%
   slice_head(n = 20)
 
-# Orden correcto para que el mayor salga arriba
+# Set the order so the highest value appears at the top
 ventas_municipio$municipio_nombre <- factor(
   ventas_municipio$municipio_nombre,
   levels = rev(ventas_municipio$municipio_nombre)
 )
 
-# Gráfico
+# Chart
 ggplot(
   ventas_municipio,
   aes(
@@ -1762,9 +2954,9 @@ ggplot(
   geom_col(fill = "steelblue") +
   coord_flip() +
   labs(
-    title = "Top 20 municipios con más Ventas",
-    x = "Municipio",
-    y = "Total de ventas"
+    title = "Top 20 municipalities by sales",
+    x = "Municipality",
+    y = "Total sales"
   ) +
   theme_minimal() +
   theme(
@@ -1775,12 +2967,27 @@ ggplot(
   )
 ```
 
+#### Step 83 — Format the municipality sales ranking
+
+**Purpose.** Create a refined version of the top-20 municipality chart with readable number formatting.
+
+**Why this is done.** Thousands separators improve the readability of large sales totals while preserving the same analytical result.
+
+**Step-by-step.**
+
+1.  Repeat the municipality aggregation and top-20 selection.
+2.  Order municipalities by sales.
+3.  Draw a horizontal bar chart.
+4.  Format the sales scale with the selected thousands and decimal separators.
+
+**Expected result.** A formatted municipality sales ranking is generated.
+
 ```{r}
 library(dplyr)
 library(ggplot2)
 library(scales)
 
-# Ventas totales por afiliado
+# Total sales by affiliated outlet
 ventas_afiliado <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   group_by(Affiliated_Code) %>%
@@ -1789,7 +2996,7 @@ ventas_afiliado <- SalesDay %>%
     .groups = "drop"
   )
 
-# Ventas totales por municipio
+# Total sales by municipality
 ventas_municipio <- ventas_afiliado %>%
   left_join(
     Affiliated_Outlets,
@@ -1808,13 +3015,13 @@ ventas_municipio <- ventas_afiliado %>%
   arrange(desc(Ventas_Totales)) %>%
   slice_head(n = 20)
 
-# Ordenar para que el municipio con más ventas salga arriba
+# Order municipalities so the highest-sales municipality appears at the top
 ventas_municipio$municipio_nombre <- factor(
   ventas_municipio$municipio_nombre,
   levels = rev(ventas_municipio$municipio_nombre)
 )
 
-# Gráfico
+# Chart
 ggplot(
   ventas_municipio,
   aes(
@@ -1831,9 +3038,9 @@ ggplot(
     )
   ) +
   labs(
-    title = "Top 20 Municipios con más Ventas",
-    x = "Municipio",
-    y = "Total de ventas"
+    title = "Top 20 municipalities by sales",
+    x = "Municipality",
+    y = "Total sales"
   ) +
   theme_minimal() +
   theme(
@@ -1848,12 +3055,27 @@ ggplot(
   )
 ```
 
+#### Step 84 — Create the final municipality sales chart
+
+**Purpose.** Produce the presentation-ready municipality ranking and shorten selected long bilingual names.
+
+**Why this is done.** Long municipality labels can dominate the available space. Shortening a small number of known labels improves visual clarity without changing the grouping logic.
+
+**Step-by-step.**
+
+1.  Aggregate and rank municipality sales.
+2.  Replace selected long names with concise display labels.
+3.  Order values so the highest appears at the top.
+4.  Draw the horizontal chart with formatted numbers and larger typography.
+
+**Expected result.** The final top-20 municipality chart is produced.
+
 ```{r}
 library(dplyr)
 library(ggplot2)
 library(scales)
 
-# Ventas totales por afiliado
+# Total sales by affiliated outlet
 ventas_afiliado <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   group_by(Affiliated_Code) %>%
@@ -1862,7 +3084,7 @@ ventas_afiliado <- SalesDay %>%
     .groups = "drop"
   )
 
-# Ventas por municipio
+# Sales by municipality
 ventas_municipio <- ventas_afiliado %>%
   left_join(
     Affiliated_Outlets,
@@ -1881,7 +3103,7 @@ ventas_municipio <- ventas_afiliado %>%
   arrange(desc(Ventas_Totales)) %>%
   slice_head(n = 20)
 
-# Acortar nombres demasiado largos
+# Shorten excessively long names
 ventas_municipio <- ventas_municipio %>%
   mutate(
     municipio_nombre = case_when(
@@ -1892,13 +3114,13 @@ ventas_municipio <- ventas_municipio %>%
     )
   )
 
-# Ordenar para que el mayor aparezca arriba
+# Order values so the highest appears at the top
 ventas_municipio$municipio_nombre <- factor(
   ventas_municipio$municipio_nombre,
   levels = rev(ventas_municipio$municipio_nombre)
 )
 
-# Gráfico
+# Chart
 ggplot(
   ventas_municipio,
   aes(
@@ -1915,9 +3137,9 @@ ggplot(
     )
   ) +
   labs(
-    title = "Top 20 Municipios con más Ventas",
+    title = "Top 20 municipalities by sales",
     x = "",
-    y = "Total de ventas"
+    y = "Total sales"
   ) +
   theme_minimal() +
   theme(
@@ -1932,6 +3154,20 @@ ggplot(
   )
 ```
 
+#### Step 85 — Prepare outlet attributes for an exploratory correlation
+
+**Purpose.** Convert engagement, location and store-size categories into numeric codes.
+
+**Why this is done.** A correlation matrix requires numeric inputs. This early exploratory approach converts factor levels directly to numeric codes.
+
+**Step-by-step.**
+
+1.  Select the three outlet attributes.
+2.  Remove `N.D.` size records.
+3.  Convert each categorical variable to a factor and then to its numeric code.
+
+**Expected result.** A fully numeric exploratory table is created for correlation analysis.
+
 ```{r}
 library(dplyr)
 
@@ -1939,17 +3175,44 @@ datos_corr <- Affiliated_Outlets %>%
   select(Engage, Location, Tam_m2) %>%
   filter(Tam_m2 != "N.D.")
 
-# Convertir a numérico
+# Convert to numeric
 datos_corr$Engage <- as.numeric(as.factor(datos_corr$Engage))
 datos_corr$Location <- as.numeric(as.factor(datos_corr$Location))
 datos_corr$Tam_m2 <- as.numeric(as.factor(datos_corr$Tam_m2))
 ```
+
+#### Step 86 — Calculate the exploratory outlet-attribute correlation matrix
+
+**Purpose.** Measure pairwise Pearson correlations among the numerically encoded outlet variables.
+
+**Why this is done.** The calculation provides a first indication of whether the selected outlet characteristics move together.
+
+**Step-by-step.**
+
+1.  Pass the prepared numeric data frame to `cor()`.
+2.  Print the resulting matrix.
+
+**Expected result.** A numeric correlation matrix is returned.
 
 ```{r}
 matriz_corr <- cor(datos_corr)
 
 matriz_corr
 ```
+
+#### Step 87 — Create the first outlet-attribute correlation plot
+
+**Purpose.** Visualise the exploratory matrix using a blue colour scale.
+
+**Why this is done.** The chart makes positive and weaker relationships easier to identify than the printed matrix.
+
+**Step-by-step.**
+
+1.  Display only the upper triangle.
+2.  Add the coefficients to each cell.
+3.  Use a light-to-dark blue palette.
+
+**Expected result.** An initial outlet-attribute correlation visualisation is produced.
 
 ```{r}
 library(corrplot)
@@ -1965,6 +3228,20 @@ corrplot(
 )
 ```
 
+#### Step 88 — Adjust correlation-plot readability
+
+**Purpose.** Refine label size, coefficient size and margins.
+
+**Why this is done.** This iteration tests presentation settings so that labels and values remain legible in the final report.
+
+**Step-by-step.**
+
+1.  Keep the upper-triangle layout.
+2.  Increase label and coefficient sizes.
+3.  Adjust the top margin.
+
+**Expected result.** An alternative formatted version of the same matrix is generated.
+
 ```{r}
 corrplot(
   matriz_corr,
@@ -1972,24 +3249,39 @@ corrplot(
   type = "upper",
   addCoef.col = "black",
   tl.col = "black",
-  tl.cex = 1,      # Tamaño de etiquetas
+  tl.cex = 1,      # Label size
   tl.srt = 0,      # Horizontal
-  number.cex = 1,  # Tamaño de coeficientes
-  mar = c(1,1,3,1) # Margen superior
+  number.cex = 1,  # Coefficient size
+  mar = c(1,1,3,1) # Top margin
 )
 ```
 
+#### Step 89 — Test a diverging correlation palette
+
+**Purpose.** Use red, white and blue to distinguish negative, near-zero and positive correlations.
+
+**Why this is done.** A diverging palette communicates both direction and magnitude more clearly than a one-sided colour scale.
+
+**Step-by-step.**
+
+1.  Create the custom palette.
+2.  Apply it to the upper triangle.
+3.  Display coefficients with two decimal places.
+4.  Rotate and resize labels.
+
+**Expected result.** A direction-sensitive correlation chart is produced.
+
 ```{r}
-# Carga de librerias
+# Load libraries
 library(corrplot)
 
-# Paleta de colores
+# Colour palette
 colores_corr <- colorRampPalette(c(
   "#B2182B",  
   "#F7F7F7",
   "#2C7FB8" ))(200)
 
-# Crear gráfico
+# Create chart
 corrplot(
   matriz_corr,
   method = "color",
@@ -2007,6 +3299,20 @@ corrplot(
 )
 ```
 
+#### Step 90 — Test additional correlation-plot margins
+
+**Purpose.** Evaluate another layout for the same matrix.
+
+**Why this is done.** Plot margins can affect whether titles and labels are clipped when the figure is exported.
+
+**Step-by-step.**
+
+1.  Draw the upper-triangle matrix.
+2.  Increase the top margin.
+3.  Set the base plotting margins for subsequent output.
+
+**Expected result.** A further layout alternative is generated.
+
 ```{r}
 
 corrplot(
@@ -2022,11 +3328,24 @@ corrplot(
 par(mar = c(1, 1, 6, 1))
 ```
 
+#### Step 91 — Rename outlet variables for display
+
+**Purpose.** Replace technical matrix labels with clearer presentation labels.
+
+**Why this is done.** Readable labels make the visualisation more accessible to a non-technical audience.
+
+**Step-by-step.**
+
+1.  Rename matrix rows and columns.
+2.  Redraw the correlation plot with larger labels and coefficients.
+
+**Expected result.** A correlation chart with simplified display names is produced.
+
 ```{r}
 
 library(corrplot)
 
-# Renombrar variables para que se vean bien
+# Rename variables for clearer display
 colnames(matriz_corr) <- c(
   "Engage",
   "Location",
@@ -2053,20 +3372,36 @@ corrplot(
 
 ```
 
+#### Step 92 — Create a more meaningful outlet-attribute correlation matrix
+
+**Purpose.** Convert the outlet-size ranges to approximate numeric values before calculating correlations.
+
+**Why this is done.** Using representative size values preserves the order and approximate distance between bands better than arbitrary factor codes.
+
+**Step-by-step.**
+
+1.  Convert `Engage` to numeric.
+2.  Encode `Location` as numeric categories.
+3.  Map each `Tam_m2` range to a representative value and set `N.D.` to missing.
+4.  Calculate Pearson correlations using complete records.
+5.  Apply a diverging colour palette and display coefficients.
+
+**Expected result.** A methodologically improved outlet-attribute correlation plot is produced.
+
 ```{r fig.width=10, fig.height=7}
 
 library(dplyr)
 library(corrplot)
 
-# 1. Preparar variables de Affiliated_Outlets
+# 1. Prepare Affiliated_Outlets variables
 datos_corr_afiliados <- Affiliated_Outlets %>%
   mutate(
     Engage = as.numeric(Engage),
     
-    # Convertimos Location a número para poder calcular correlación
+    # Convert Location to numeric values to calculate correlation
     Location = as.numeric(as.factor(Location)),
     
-    # Convertimos Tam_m2 a valores numéricos aproximados
+    # Convert Tam_m2 to approximate numeric values
     Tam_m2 = case_when(
       Tam_m2 == "<2" ~ 1,
       Tam_m2 == "2-5" ~ 3.5,
@@ -2085,14 +3420,14 @@ datos_corr_afiliados <- Affiliated_Outlets %>%
     Tam_m2
   )
 
-# 2. Crear matriz de correlación
+# 2. Create correlation matrix
 matriz_corr_afiliados <- cor(
   datos_corr_afiliados,
   use = "complete.obs",
   method = "pearson"
 )
 
-# 3. Nombres de variables
+# 3. Variable names
 colnames(matriz_corr_afiliados) <- c(
   "Engage",
   "Location",
@@ -2105,14 +3440,14 @@ rownames(matriz_corr_afiliados) <- c(
   "Tam_m2"
 )
 
-# 4. Paleta de colores igual que la anterior
+# 4. Use the same colour palette as above
 colores_corr <- colorRampPalette(c(
-  "#B2182B",  # rojo para correlaciones negativas
-  "#F7F7F7",  # blanco para valores cercanos a 0
-  "#08306B"   # azul oscuro
+  "#B2182B",  # red for negative correlations
+  "#F7F7F7",  # white for values close to 0
+  "#08306B"   # dark blue
 ))(200)
 
-# 5. Gráfico de correlación
+# 5. Correlation chart
 corrplot(
   matriz_corr_afiliados,
   method = "color",
@@ -2132,23 +3467,39 @@ corrplot(
 
 ```
 
+#### Step 93 — Generate the official outlet-attribute correlation chart
+
+**Purpose.** Use a more robust size-cleaning method and pairwise handling of missing values.
+
+**Why this is done.** The official version accepts minor formatting differences in `Tam_m2` and uses all available pairs rather than discarding a row whenever any variable is missing.
+
+**Step-by-step.**
+
+1.  Trim the store-size text.
+2.  Use pattern matching to map size categories to representative numeric values.
+3.  Calculate pairwise Pearson correlations.
+4.  Apply the selected soft diverging palette.
+5.  Display the coefficients in the upper triangle.
+
+**Expected result.** The final outlet-attribute correlation visualisation is generated.
+
 ```{r fig.width=10, fig.height=7}
-#OFICIAL USADO
+# OFFICIAL VERSION USED
 library(dplyr)
 library(corrplot)
 
-# 1. Preparar variables de Affiliated_Outlets
+# 1. Prepare Affiliated_Outlets variables
 datos_corr_afiliados <- Affiliated_Outlets %>%
   mutate(
     Engage = as.numeric(Engage),
     
-    # Convertimos Location a número
+    # Convert Location to numeric values
     Location = as.numeric(as.factor(Location)),
     
-    # Limpiamos Tam_m2
+    # Clean Tam_m2
     Tam_m2_limpio = trimws(as.character(Tam_m2)),
     
-    # Convertimos Tam_m2 a valores numéricos aproximados
+    # Convert Tam_m2 to approximate numeric values
     Tam_m2 = case_when(
       grepl("<2", Tam_m2_limpio) ~ 1,
       grepl("2-5", Tam_m2_limpio) ~ 3.5,
@@ -2167,14 +3518,14 @@ datos_corr_afiliados <- Affiliated_Outlets %>%
     Tam_m2
   )
 
-# 2. Crear matriz de correlación
+# 2. Create correlation matrix
 matriz_corr_afiliados <- cor(
   datos_corr_afiliados,
   use = "pairwise.complete.obs",
   method = "pearson"
 )
 
-# 3. Nombres de variables
+# 3. Variable names
 colnames(matriz_corr_afiliados) <- c(
   "Engage",
   "Location",
@@ -2187,14 +3538,14 @@ rownames(matriz_corr_afiliados) <- c(
   "Tam_m2"
 )
 
-# 4. Paleta de colores suave
+# 4. Soft colour palette
 colores_corr <- colorRampPalette(c(
-  "#B2182B",  # rojo
-  "#F7F7F7",  # blanco
-  "#5DA5D8"   # azul claro
+  "#B2182B",  # red
+  "#F7F7F7",  # white
+  "#5DA5D8"   # light blue
 ))(200)
 
-# 5. Gráfico de correlación
+# 5. Correlation chart
 corrplot(
   matriz_corr_afiliados,
   method = "color",
@@ -2213,8 +3564,23 @@ corrplot(
 
 ```
 
+#### Step 94 — Analyse the distribution of positive sales quantities
+
+**Purpose.** Group positive `Sales_Uds` values into interpretable ranges and count their frequency.
+
+**Why this is done.** Sales quantities are strongly concentrated at small values. Binning larger values prevents the chart from becoming excessively wide while retaining the shape of the distribution.
+
+**Step-by-step.**
+
+1.  Keep only positive sales records.
+2.  Assign exact categories for values from one to five and broader ranges for larger values.
+3.  Order the categories logically.
+4.  Count records and draw the bar chart.
+
+**Expected result.** A frequency distribution of positive units sold is produced.
+
 ```{r}
-#EDA: SalesDay, Analisis de Distribucion de Valores positivos
+# EDA: SalesDay — distribution analysis of positive values
   library(dplyr)
 library(ggplot2)
 
@@ -2244,9 +3610,9 @@ SalesDay %>%
   ggplot(aes(x = rango_ventas, y = n)) +
   geom_col(fill = "steelblue") +
   labs(
-    title = "Distribución de unidades vendidas positivas",
-    x = "Rango de unidades vendidas",
-    y = "Frecuencia"
+    title = "Distribution of positive units sold",
+    x = "Units sold range",
+    y = "Frequency"
   ) +
   theme_minimal() +
   theme(
@@ -2257,8 +3623,22 @@ SalesDay %>%
   )
 ```
 
+#### Step 95 — Analyse negative sales quantities separately
+
+**Purpose.** Count and visualise all negative `Sales_Uds` values.
+
+**Why this is done.** Negative values are excluded from many operational totals, but they are examined separately so that corrections, returns or reversals are not ignored.
+
+**Step-by-step.**
+
+1.  Filter records below zero.
+2.  Count each distinct negative value.
+3.  Order the values and draw a bar chart.
+
+**Expected result.** A diagnostic distribution of negative sales records is produced.
+
 ```{r}
-# EDA: SalesDay, análisis de distribución de valores negativos
+# EDA: SalesDay — distribution analysis of negative values
 
 SalesDay %>%
   filter(Sales_Uds < 0) %>%
@@ -2269,9 +3649,9 @@ SalesDay %>%
   ggplot(aes(x = Sales_Uds, y = n)) +
   geom_col(fill = "steelblue") +
   labs(
-    title = "Valores Negativos en Unidades Vendidas",
-    x = "Unidades vendidas",
-    y = "Frecuencia"
+    title = "Negative values in units sold",
+    x = "Units sold",
+    y = "Frequency"
   ) +
   theme_minimal() +
   theme(
@@ -2282,33 +3662,48 @@ SalesDay %>%
   )
 ```
 
+#### Step 96 — Analyse monthly route activity
+
+**Purpose.** Convert route dates and count the number of route records by month.
+
+**Why this is done.** The monthly series shows how scheduled route activity changes through the available period and supports comparison with deliveries and sales.
+
+**Step-by-step.**
+
+1.  Convert `Route_DAY` from `YYYYMMDD` to a date.
+2.  Extract labelled months.
+3.  Count route records by month.
+4.  Draw a line chart with points and readable month labels.
+
+**Expected result.** A monthly RouteDay activity trend is produced.
+
 ```{r}
-# DISTRIBUCIÓN EDA: ROUTEDAY - Distribución mensual
+# EDA DISTRIBUTION: ROUTEDAY — monthly distribution
 
 library(dplyr)
 library(ggplot2)
 library(lubridate)
 
-# Convertimos Route_DAY a formato fecha
+# Convert Route_DAY to date format
 RouteDay <- RouteDay %>%
   mutate(
     Route_DAY = as.Date(as.character(Route_DAY), format = "%Y%m%d"),
     Mes = month(Route_DAY, label = TRUE, abbr = FALSE)
   )
 
-# Agrupación mensual de registros de rutas
+# Monthly aggregation of route records
 RouteDay_mes <- RouteDay %>%
   group_by(Mes) %>%
   summarise(registros_ruta = n())
 
-# Gráfico mensual
+# Monthly chart
 ggplot(RouteDay_mes, aes(x = Mes, y = registros_ruta, group = 1)) +
   geom_line(color = "steelblue", linewidth = 1) +
   geom_point(color = "steelblue", size = 2) +
   labs(
-    title = "Distribución mensual de RouteDay",
-    x = "Mes",
-    y = "Número de registros de ruta"
+    title = "Monthly RouteDay distribution",
+    x = "Month",
+    y = "Number of route records"
   ) +
   theme_minimal() +
   theme(
@@ -2320,12 +3715,28 @@ ggplot(RouteDay_mes, aes(x = Mes, y = registros_ruta, group = 1)) +
   )
 ```
 
+#### Step 97 — Analyse correlations between product characteristics and sales
+
+**Purpose.** Combine product-level sales, product size and product-format indicators in one correlation matrix.
+
+**Why this is done.** Product format is categorical, so dummy variables are required before it can be included in a numerical correlation analysis.
+
+**Step-by-step.**
+
+1.  Remove duplicate product-code records and convert product size to numeric.
+2.  Aggregate non-negative sales by product.
+3.  Join sales to product attributes and remove incomplete records.
+4.  Create one dummy variable for each format.
+5.  Combine the variables, calculate Pearson correlations and plot the matrix.
+
+**Expected result.** A product-level correlation visualisation is generated.
+
 ```{r}
-#Matriz de correlacion de informacion de producto
+# Product information correlation matrix
 library(dplyr)
 library(corrplot)
 
-# 1. Limpiar tabla Product para evitar duplicados por Product_Code
+# 1. Clean the Product table to prevent duplicates by Product_Code
 Product_limpio <- Product %>%
   distinct(Product_Code, .keep_all = TRUE) %>%
   mutate(
@@ -2333,7 +3744,7 @@ Product_limpio <- Product %>%
     SIZE_num = as.numeric(as.character(SIZE))
   )
 
-# 2. Calcular ventas totales por producto
+# 2. Calculate total sales by product
 ventas_por_producto <- SalesDay %>%
   filter(Sales_Uds >= 0) %>%
   group_by(Product_Code) %>%
@@ -2342,7 +3753,7 @@ ventas_por_producto <- SalesDay %>%
     .groups = "drop"
   )
 
-# 3. Unir ventas con características del producto
+# 3. Join sales with product attributes
 datos_producto_corr <- ventas_por_producto %>%
   left_join(Product_limpio, by = "Product_Code") %>%
   filter(
@@ -2350,11 +3761,11 @@ datos_producto_corr <- ventas_por_producto %>%
     !is.na(SIZE_num)
   )
 
-# 4. Convertir Format en variables numéricas dummy
+# 4. Convert Format into numeric dummy variables
 format_dummies <- model.matrix(~ Format - 1, data = datos_producto_corr) %>%
   as.data.frame()
 
-# 5. Preparar datos para correlación
+# 5. Prepare data for correlation analysis
 datos_corr_producto <- bind_cols(
   datos_producto_corr %>%
     select(
@@ -2364,30 +3775,30 @@ datos_corr_producto <- bind_cols(
   format_dummies
 )
 
-# 6. Renombrar columnas
+# 6. Rename columns
 colnames(datos_corr_producto) <- c(
-  "Ventas",
-  "Tamaño",
+  "Sales",
+  "Size",
   "Formato_ASL",
   "Formato_ATA",
   "Formato_ETO"
 )
 
-# 7. Crear matriz de correlación
+# 7. Create correlation matrix
 matriz_corr_producto <- cor(
   datos_corr_producto,
   use = "complete.obs",
   method = "pearson"
 )
 
-# 8. Paleta de colores suave como la anterior
+# 8. Use the same soft colour palette as above
 colores_corr <- colorRampPalette(c(
-  "#B2182B",  # rojo
-  "#F7F7F7",  # blanco
-  "#5DA5D8"   # azul claro
+  "#B2182B",  # red
+  "#F7F7F7",  # white
+  "#5DA5D8"   # light blue
 ))(200)
 
-# 9. Gráfico de correlación
+# 9. Correlation chart
 corrplot(
   matriz_corr_producto,
   method = "color",
@@ -2405,15 +3816,31 @@ corrplot(
 )
 ```
 
+#### Step 98 — Build the outlet-level clustering dataset
+
+**Purpose.** Combine sales, delivery, availability and outlet characteristics into one modelling table.
+
+**Why this is done.** K-means requires one row per entity and a set of numeric features. Aggregating each operational source by outlet creates that structure.
+
+**Step-by-step.**
+
+1.  Calculate total sales, average sales and active sales days by outlet.
+2.  Calculate delivered units and delivery days by outlet.
+3.  Count out-of-stock incidents by outlet.
+4.  Join all measures to the outlet master table.
+5.  Replace missing operational measures with zero.
+
+**Expected result.** A feature table with one row per affiliated outlet is created.
+
 ```{r}
-# CLUSTERIZACION
+# CLUSTERING
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(cluster)
 library(factoextra)
 
-# Ventas por afiliado
+# Sales by affiliated outlet
 ventas_afiliado <- SalesDay %>%
   filter(Sales_Uds > 0) %>%
   group_by(Affiliated_Code) %>%
@@ -2424,7 +3851,7 @@ ventas_afiliado <- SalesDay %>%
     .groups = "drop"
   )
 
-# Entregas por afiliado
+# Deliveries by affiliated outlet
 entregas_afiliado <- DeliveryDay %>%
   filter(Delivery_Uds > 0) %>%
   group_by(Affiliated_Code) %>%
@@ -2434,7 +3861,7 @@ entregas_afiliado <- DeliveryDay %>%
     .groups = "drop"
   )
 
-# Roturas por afiliado
+# Out-of-stock incidents by affiliated outlet
 oos_afiliado <- OoSDay %>%
   group_by(Affiliated_Code) %>%
   summarise(
@@ -2442,7 +3869,7 @@ oos_afiliado <- OoSDay %>%
     .groups = "drop"
   )
 
-# Tabla final
+# Final table
 cluster_data <- Affiliated_Outlets %>%
   left_join(ventas_afiliado, by = "Affiliated_Code") %>%
   left_join(entregas_afiliado, by = "Affiliated_Code") %>%
@@ -2452,8 +3879,21 @@ cluster_data <- Affiliated_Outlets %>%
                 ~replace_na(.x, 0)))
 ```
 
+#### Step 99 — Select and standardise clustering variables
+
+**Purpose.** Prepare the numeric feature matrix used by k-means.
+
+**Why this is done.** The variables use very different scales. Standardisation prevents high-volume measures such as total sales from dominating the distance calculation.
+
+**Step-by-step.**
+
+1.  Select the operational and outlet-characteristic variables.
+2.  Apply z-score standardisation using `scale()`.
+
+**Expected result.** A scaled clustering matrix is created.
+
 ```{r}
-# Seleccionar variables
+# Select variables
 datos_kmeans <- cluster_data %>%
   select(
     ventas_totales,
@@ -2466,21 +3906,49 @@ datos_kmeans <- cluster_data %>%
     Management_Cluster
   )
 
-#Quitar importancia por escala
+# Standardise variables to remove scale effects
 datos_kmeans_scaled <- scale(datos_kmeans)
 
 ```
 
+#### Step 100 — Estimate the appropriate number of clusters
+
+**Purpose.** Use the elbow method to compare within-cluster variation across different values of k.
+
+**Why this is done.** The elbow point indicates where adding more clusters produces diminishing improvements in compactness.
+
+**Step-by-step.**
+
+1.  Run k-means repeatedly for several cluster counts.
+2.  Plot total within-cluster sum of squares.
+3.  Inspect the curve for the point where the reduction begins to flatten.
+
+**Expected result.** An elbow-method chart is produced to support the choice of cluster count.
+
 ```{r}
 
-#Metodo del codo
+# Elbow method
 fviz_nbclust(datos_kmeans_scaled, kmeans, method = "wss") +
-  labs(title = "Método del codo para determinar el número óptimo de clústeres")
+  labs(title = "Elbow method for determining the optimal number of clusters")
 ```
 
+#### Step 101 — Fit the k-means model
+
+**Purpose.** Assign each affiliated outlet to one of four data-driven clusters.
+
+**Why this is done.** Multiple random initialisations reduce the chance of selecting a poor local solution, while a fixed seed makes the result reproducible.
+
+**Step-by-step.**
+
+1.  Set a reproducible random seed.
+2.  Run k-means with four centres and 25 starting configurations.
+3.  Store the resulting cluster assignment in the outlet-level table.
+
+**Expected result.** Every outlet receives a cluster label.
+
 ```{r}
-#Aplicamos Kmeans
-#se han escogido 4 clusters
+# Apply k-means clustering
+# Four clusters were selected
 set.seed(123)
 
 modelo_kmeans <- kmeans(datos_kmeans_scaled, centers = 4, nstart = 25)
@@ -2488,8 +3956,23 @@ modelo_kmeans <- kmeans(datos_kmeans_scaled, centers = 4, nstart = 25)
 cluster_data$cluster <- as.factor(modelo_kmeans$cluster)
 ```
 
+#### Step 102 — Profile and interpret the clusters
+
+**Purpose.** Summarise the average operational characteristics of each cluster and compare average sales.
+
+**Why this is done.** Cluster labels have no inherent business meaning. Profiling the groups is necessary to understand how they differ and to translate the model into actionable segments.
+
+**Step-by-step.**
+
+1.  Count the number of outlets in each cluster.
+2.  Calculate average sales, deliveries, stock-out incidents and engagement.
+3.  Display the summary table.
+4.  Plot average total sales by cluster.
+
+**Expected result.** A cluster profile table and an average-sales comparison chart are produced.
+
 ```{r}
-# Interpretacion
+# Interpretation
 resumen_clusters <- cluster_data %>%
   group_by(cluster) %>%
   summarise(
@@ -2501,20 +3984,32 @@ resumen_clusters <- cluster_data %>%
     engage_medio = mean(Engage, na.rm = TRUE),
     .groups = "drop"
   )
-#Grafico de clusters(ventas medias por afiliado)
+# Cluster chart (average sales by affiliated outlet)
 resumen_clusters
 ggplot(resumen_clusters, aes(x = cluster, y = ventas_totales_media)) +
   geom_col() +
   labs(
-    title = "Ventas medias por clúster de afiliados",
-    x = "Clúster",
-    y = "Ventas medias"
+    title = "Average sales by affiliated outlet cluster",
+    x = "Cluster",
+    y = "Average sales"
   ) +
   theme_minimal()
 ```
 
+#### Step 103 — Load packages for the final workflow
+
+**Purpose.** Prepare the libraries used in the consolidated data-preparation, clustering and visualisation process.
+
+**Why this is done.** This section restarts the workflow in a compact form, so its dependencies are declared again for reproducibility.
+
+**Step-by-step.**
+
+1.  Load transformation, import, text, date, visualisation and clustering packages.
+
+**Expected result.** The final workflow's package dependencies are available.
+
 ```{r}
-# Carga de librerias
+# Load libraries
 library(dplyr)
 library(readr)
 library(stringr)
@@ -2524,6 +4019,19 @@ library(tidyr)
 library(cluster)
 library(factoextra)
 ```
+
+#### Step 104 — Reload the operational source files
+
+**Purpose.** Import the core datasets for the consolidated final workflow.
+
+**Why this is done.** Reloading the data ensures that the final section starts from the original source tables rather than objects modified during earlier exploratory steps.
+
+**Step-by-step.**
+
+1.  Set the working directory.
+2.  Read each operational CSV file into its original object.
+
+**Expected result.** Fresh copies of the source datasets are loaded.
 
 ```{r}
 # 
@@ -2536,6 +4044,20 @@ Product <- read.csv("Product.csv",  sep = ";")
 RouteDay <- read.csv("RouteDay.csv", sep = ";")
 SalesDay<- read.csv("SalesDay (1).csv",  sep = ";")
 ```
+
+#### Step 105 — Install and load required packages automatically
+
+**Purpose.** Check whether each required package is available and install missing packages.
+
+**Why this is done.** This makes the notebook easier to run on a new computer where some dependencies may not yet be installed.
+
+**Step-by-step.**
+
+1.  Create a vector containing the required package names.
+2.  Loop through the vector.
+3.  Load each package and install it first when necessary.
+
+**Expected result.** All listed packages are installed and attached.
 
 ```{r}
 paquetes <- c(
@@ -2551,9 +4073,23 @@ for (p in paquetes) {
 }
 ```
 
+#### Step 106 — Load the 2015 external reference data
+
+**Purpose.** Import provincial units, provincial revenue and GDP files from Excel.
+
+**Why this is done.** These external sources provide broader geographic and economic context that is not contained in the internal operational tables.
+
+**Step-by-step.**
+
+1.  Load the Excel import package.
+2.  Use an interactive file selector for each external dataset.
+3.  Store the files in separate R objects.
+
+**Expected result.** Three external 2015 reference tables are loaded.
+
 ```{r}
 # =========================
-# 3. Cargar fuentes externas 2015
+# 3. Load 2015 external data sources
 # =========================
 library(readxl)
 
@@ -2561,6 +4097,22 @@ Prov_Unidades_2015 <- read_excel(file.choose())
 Prov_Euros_2015 <- read_excel(file.choose())
 PIB <- read_excel(file.choose())
 ```
+
+#### Step 107 — Forecast weekly internal sales for 2016
+
+**Purpose.** Aggregate 2015 sales by week, fit an ARIMA model and generate a 52-week forecast.
+
+**Why this is done.** Weekly aggregation provides enough observations for time-series modelling while smoothing daily noise. `auto.arima()` selects an ARIMA specification based on the observed series.
+
+**Step-by-step.**
+
+1.  Exclude negative sales and convert the date field.
+2.  Aggregate units sold by week and order the series.
+3.  Create a weekly time-series object with frequency 52.
+4.  Fit the automatically selected ARIMA model.
+5.  Forecast the next 52 weeks and plot the predicted path with uncertainty intervals.
+
+**Expected result.** A weekly internal-sales forecast for 2016 is produced.
 
 ```{r}
 library(dplyr)
@@ -2586,8 +4138,8 @@ prediccion_2016 <- forecast(modelo_arima, h = 52)
 
 autoplot(prediccion_2016) +
   labs(
-    title = "Predicción semanal de ventas internas para 2016",
-    x = "Semanas",
-    y = "Unidades vendidas"
+    title = "Weekly forecast of internal sales for 2016",
+    x = "Weeks",
+    y = "Units sold"
   )
 ```
