@@ -18,8 +18,6 @@ This folder contains the R Markdown analysis used to explore, validate and visua
 
 - [`exploratory-and-advanced-analysis.Rmd`](./exploratory-and-advanced-analysis.Rmd): R Markdown analysis covering data validation, descriptive statistics, exploratory visualisations, relationships between variables, clustering and forecasting.
 
-> The current analysis is written primarily in Spanish. An English version may be added in a future update.
-
 ## Main libraries
 
 `tidyverse` · `dplyr` · `ggplot2` · `lubridate` · `readr`
