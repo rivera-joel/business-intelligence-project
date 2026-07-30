@@ -1,5 +1,5 @@
 <h1 align="center">
-  Business Intelligence Solution: ETL, Analytics and Forecasting
+  Business Intelligence Solution: ETL, Analytics and Forecasting. Dashboards included.
 </h1>
 
 <p align="center">
