@@ -46,7 +46,7 @@ It covers the complete Business Intelligence process, including data validation,
 </td>
 <td align="center" width="50%">
 <h3>Exploratory Data Analysis</h3>
-<p>Data validation, exploratory analysis and statistical visualisations developed in R Markdown to support the Business Intelligence solution.</p>
+<p>Data validation, exploratory analysis and statistical visualisations developed in R to support the Business Intelligence solution.</p>
 <a href="./exploratory-data-analysis">
 <img src="https://img.shields.io/badge/View_R_Analysis-276DC3?style=for-the-badge&logo=r&logoColor=white" alt="View R Analysis">
 </a>
