@@ -44,25 +44,23 @@ It covers the complete Business Intelligence process, including data validation,
 <img src="https://img.shields.io/badge/View_Power_BI_Dashboard-F2C811?style=for-the-badge&logo=powerbi&logoColor=black" alt="View Power BI Dashboard">
 </a>
 </td>
+
 <td align="center" width="50%">
 <h3>Exploratory Data Analysis</h3>
-<p>Data validation, exploratory analysis and statistical visualisations developed in R to support the Business Intelligence solution.</p>
+<p>Data validation, exploratory analysis and statistical visualisations developed in R Markdown to support the Business Intelligence solution.</p>
 <a href="./exploratory-data-analysis">
 <img src="https://img.shields.io/badge/View_R_Analysis-276DC3?style=for-the-badge&logo=r&logoColor=white" alt="View R Analysis">
 </a>
 </td>
 </tr>
+
 <tr>
 <td align="center" colspan="2">
 <h3>Master's Thesis</h3>
 <p>Complete academic documentation covering the business context, methodology, data preparation, analytical development, dashboard design, results, conclusions, limitations and future improvements.</p>
-<a href="./docs/thesis/en/Business-Intelligence-Solution-EN-Version.pdf">
-<img src="https://img.shields.io/badge/READ_FULL_THESIS-ENGLISH-276DC3?style=for-the-badge" alt="Read Full Master's Thesis in English">
-</a>
+<a href="./docs/thesis/en/Business-Intelligence-Solution-EN-Version.pdf"><img src="https://img.shields.io/badge/READ_FULL_THESIS-ENGLISH-8C8C8C?style=for-the-badge" alt="Read Full Master's Thesis in English"></a>
 &nbsp;&nbsp;
-<a href="./docs/thesis/es/proyecto-inteligencia-negocio-altadis-es.pdf">
-<img src="https://img.shields.io/badge/READ_FULL_THESIS-SPANISH-F2C811?style=for-the-badge&logoColor=black" alt="Read Full Master's Thesis in Spanish">
-</a>
+<a href="./docs/thesis/es/proyecto-inteligencia-negocio-altadis-es.pdf"><img src="https://img.shields.io/badge/READ_FULL_THESIS-SPANISH-8C8C8C?style=for-the-badge" alt="Read Full Master's Thesis in Spanish"></a>
 </td>
 </tr>
 </table>
