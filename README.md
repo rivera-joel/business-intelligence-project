@@ -30,7 +30,6 @@ The project transforms multiple operational and external data sources into inter
 
 It covers the complete Business Intelligence process, including data validation, data transformation, exploratory analysis, data modelling, dashboard development, outlet segmentation and forecasting.
 
-
 ---
 
 ## Project components
