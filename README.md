@@ -52,27 +52,14 @@ It covers the complete Business Intelligence process, including data validation,
 </a>
 </td>
 </tr>
-</table>
-
----
-
-## Master's Thesis
-
-This Business Intelligence solution was developed as the final project for the **Master's Degree in Business Intelligence and Data Analytics**.
-
-The complete thesis documents the business context, project objectives, data sources, data preparation, exploratory analysis, data modelling, dashboard design, segmentation, forecasting, conclusions, limitations and potential future improvements.
-
-<table width="100%">
 <tr>
-<td align="center">
-<h3>Full Master's Thesis</h3>
-<p>Explore the complete methodology, technical implementation, dashboard development and business conclusions behind the project.</p>
-
+<td align="center" colspan="2">
+<h3>Master's Thesis</h3>
+<p>Complete academic documentation covering the business context, methodology, data preparation, analytical development, dashboard design, results, conclusions, limitations and future improvements.</p>
 <a href="./docs/thesis/en/Business-Intelligence-Solution-EN-Version.pdf">
 <img src="https://img.shields.io/badge/READ_FULL_THESIS-ENGLISH-276DC3?style=for-the-badge" alt="Read Full Master's Thesis in English">
 </a>
-<br><br>
-
+&nbsp;&nbsp;
 <a href="./docs/thesis/es/proyecto-inteligencia-negocio-altadis-es.pdf">
 <img src="https://img.shields.io/badge/READ_FULL_THESIS-SPANISH-F2C811?style=for-the-badge&logoColor=black" alt="Read Full Master's Thesis in Spanish">
 </a>
