@@ -161,3 +161,18 @@ business-intelligence-project/
 │   └── Power BI dashboard files and project documentation
 │
 └── README.md
+
+```
+
+---
+
+## Usage and Copyright
+```
+
+This repository is published for portfolio and educational purposes only.
+
+The thesis, Power BI dashboards, preview images and supporting documentation are protected by copyright and are provided to showcase my work.
+
+You may view, download and reference this repository for learning purposes, but redistribution, reproduction, modification or commercial use of the contents without prior written permission is not permitted.
+
+© 2026 Joel Rivera Garmendia. All rights reserved.
